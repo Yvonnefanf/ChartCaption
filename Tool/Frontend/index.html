@@ -25,7 +25,7 @@
 
       <article
         style="width:35%;margin:0 20px 0 0; height: calc(100vh - 100px); position:relative;display: flex;flex-direction: column; font-size: 16px;">
-        <div style="color:#e6a23c;
+        <div style="
         border-radius: 20px; margin-bottom: 20px; ">
 
           <strong><i class="el-icon-info"></i> [Intro]</strong>
@@ -49,7 +49,12 @@
         <article style="margin-top:20px; border: 1px solid; flex: 1;overflow: auto;" v-if="!testing" id="caption">
           <span aria-busy="true" v-if="isGeneratingCaption">Generating the Caption for you...</span>
           <div v-if="!isGeneratingCaption" style="font-size:16px; color:#fff;">
-            {{caption}}
+            <span v-for="(sentence, index) in sentences" class="sentence" :class="{'even_sentence': index%2 === 0 }" @mouseenter="sentencehover = index" @mouseleave="sentencehover = null">
+                {{sentence}}
+                <span v-show="sentencehover === index" class="delete-btn" @click="deleteSentence(index)"><i class="el-icon-delete"></i></span>
+            </span>
+            
+            <!-- {{caption}} -->
           </div>
         </article>
         <div>
@@ -156,9 +161,11 @@
         newMessage: '',
         messages: [],
         caption: '',
+        sentences:[],
         isGeneratingAnswer: false,
         isGeneratingCaption: false,
         updateCaptionDisabled: true,
+        sentencehover: null,
         selectedAnswerIndicates: [],
         template_questions: [
           {
@@ -201,6 +208,9 @@
         } else {
           this.selectedAnswerIndicates.push(index); // Add index if not selected
         }
+      },
+      deleteSentence(index) {
+        this.sentences.splice(index, 1);
       },
       startGuide() {
         this.$nextTick(() => {
@@ -256,6 +266,12 @@
           }
         }
 
+      },
+      caption(newVal){
+        if(newVal) {
+            this.sentences = newVal.match(/[^.,!?]+[.,!?]+/g)
+            console.log("sentences", this.sentences)
+        }
       }
     },
 
@@ -387,5 +403,22 @@
     position: absolute;
     top: 40px;
     right: 10px;
+  }
+  .sentence{
+    background-color: #167190;
+    cursor: pointer;
+    border-radius: 20px;
+    padding: 2px 4px;
+    position: relative;
+    margin: 2px;
+  }
+
+  .sentence:hover{
+    color: gold;
+  }
+
+  .even_sentence{
+    background: #63558b;
+    cursor: pointer;
   }
 </style>

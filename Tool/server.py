@@ -7,8 +7,8 @@ import datetime
 from utils import load_model_and_tokenizer, initialize_device
 
 
-MODEL_DIRECTORY = "/mnt/raid/yifan/LLMs/models--meta-llama--Llama-2-7b-chat-hf/snapshots/f5db02db724555f92da89c216ac04704f23d4590"
-
+# MODEL_DIRECTORY = "/mnt/raid/yifan/LLMs/models--meta-llama--Llama-2-7b-chat-hf/snapshots/f5db02db724555f92da89c216ac04704f23d4590" # 7B
+MODEL_DIRECTORY = "/mnt/raid/yifan/LLMs/models--meta-llama--Llama-2-13b-chat-hf/snapshots/a2cb7a712bb6e5e736ca7f8cd98167f81a0b5bd8" # 13B
 DEVICE = initialize_device(cuda_index=0)
 
 # Load model and tokenizer
@@ -138,49 +138,7 @@ def answer_question(question):
                 {question}?"""
             },
         ]
-        MAX_NEW_TOEKN = 50
-    elif question == 'What is the minimum change required for this instance to get a different prediction?':
-        print('type two')
-        messages = [
-            {"role": "system", "content": "Please evaluate the given SHAP values and determine the minimum change required to potentially reverse the prediction."},
-            {"role": "user", "content": 
-                """Here are the SHAP values for each feature:  
-                Age: -1.47
-                Occupation: -0.57
-                Relationship: 1.31
-                Capital Gain: -0.17
-                Education-Num: 0.57
-                What is the minimum change required for this instance to get a different prediction?"""
-            },
-            {"role": "assistant", "content": 
-                """ Changing the "Age" value is the minimum required alteration for instance to potentially reverse the prediction, given its strong negative influence."""
-            },
-            {"role": "user", "content": 
-                """Here are the SHAP values for each feature: 
-                Age: -1.59
-                Workclass: 0.22
-                Marital Status: 0.09
-                Occupation: -0.57
-                Relationship: 1.91
-                Capital Gain: -0.17
-                Education-Num: 0.57
-                What is the minimum change required for this instance to get a different prediction?"""
-            },
-            {"role": "assistant", "content": 
-                """ Changing the "Relationship" value is the minimum required alteration for instance to potentially reverse the prediction, given its strong positive influence."""
-            },
-            {"role": "user", "content": 
-                """Here are the SHAP values for each feature:
-                Years of Education:16
-                Capital Gain: -56
-                Marital Status: -45
-                Capital Loss: -22
-                Hours Per week: -17
-                Others: 45, The prediction result is positive now,
-                {question}"""
-            },
-            ]
-        MAX_NEW_TOEKN = 1000
+        MAX_NEW_TOEKN = 200
     else:
         print('other')
         messages = [
@@ -197,7 +155,7 @@ def answer_question(question):
                 {question}"""
             },
         ]
-        MAX_NEW_TOEKN = 50
+        MAX_NEW_TOEKN = 500
     
  
     
