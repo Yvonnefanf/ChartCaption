@@ -3,7 +3,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 def load_model_and_tokenizer(model_directory, device):
     # Load model with no gradient computation
-    model = AutoModelForCausalLM.from_pretrained(model_directory).half()
+    model = AutoModelForCausalLM.from_pretrained(model_directory)
     model.eval().to(device)
 
     tokenizer = AutoTokenizer.from_pretrained(model_directory)
