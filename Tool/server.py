@@ -7,7 +7,7 @@ import datetime
 from utils import load_model_and_tokenizer, initialize_device
 
 
-MODEL_DIRECTORY = "/data1/yifan/models--meta-llama--Llama-2-7b-chat-hf/snapshots/f5db02db724555f92da89c216ac04704f23d4590"
+MODEL_DIRECTORY = "/mnt/raid/yifan/LLMs/models--meta-llama--Llama-2-7b-chat-hf/snapshots/f5db02db724555f92da89c216ac04704f23d4590"
 
 DEVICE = initialize_device(cuda_index=0)
 
@@ -237,7 +237,7 @@ def get_answer():
     else:
         return jsonify({'error'})
 
-msg_history_path = '/home/yifan/project/ChartCaption/Data/ChatHistory/admin.json'
+msg_history_path = '../Data/ChatHistory/admin.json'
 @app.route('/save_message', methods=['POST'])  # Changed to GET for simplicity
 def save_message():
     data = request.get_json()
@@ -283,4 +283,4 @@ def GUI():
     
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=False, port=3333)

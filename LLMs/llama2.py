@@ -5,11 +5,11 @@ import torch.distributed as dist
 # 设置你的令牌和模型
 token = "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"
 ############## llama 7b
-model_name = "meta-llama/Llama-2-7b-chat-hf"
+# model_name = "meta-llama/Llama-2-7b-chat-hf"
 download_directory = "/mnt/raid/yifan/LLMs"
 
 ############## llama 13b
-# model_name = "meta-llama/Llama-2-13b-chat-hf"
+model_name = "meta-llama/Llama-2-13b-chat-hf"
 # download_directory = "/data1/yifan/models--meta-llama--Llama-2-13b-chat-hf/snapshots/a2cb7a712bb6e5e736ca7f8cd98167f81a0b5bd8"
 model = AutoModelForCausalLM.from_pretrained(model_name, use_auth_token=token,cache_dir=download_directory)
 tokenizer = AutoTokenizer.from_pretrained(model_name, use_auth_token=token,force_download=True,cache_dir=download_directory)
