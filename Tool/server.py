@@ -9,7 +9,7 @@ from utils import load_model_and_tokenizer, initialize_device
 
 MODEL_DIRECTORY = "/data1/yifan/models--meta-llama--Llama-2-7b-chat-hf/snapshots/f5db02db724555f92da89c216ac04704f23d4590"
 
-DEVICE = initialize_device(cuda_index=3)
+DEVICE = initialize_device(cuda_index=0)
 
 # Load model and tokenizer
 model, tokenizer = load_model_and_tokenizer(MODEL_DIRECTORY, DEVICE)

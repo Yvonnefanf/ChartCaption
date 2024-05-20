@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+  <!-- <meta name="color-scheme" content="light dark" /> -->
+  <!-- <link rel="stylesheet" href="css/pico.min.css"> -->
+  <script src="https://cdn.bootcss.com/vue/2.5.16/vue.min.js"></script>
+  <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+  <title>QACaption</title>
+  <script src="Frontend/request.js"></script>
+  <link rel="stylesheet" href="Frontend/thirdParty/driver.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/driver.js/dist/driver.min.js"></script>
+
+</head>
+
+<body>
+  <main id="app">
+    <!-- <h1>Hello world!</h1> -->
+    <el-header style="height: 50px;">Task: Question-Driven Caption Generation</el-header>
+    <div class="app-container">
+
+      <article
+        style="width:35%;margin:0 20px 0 0; height: calc(100vh - 100px); position:relative;display: flex;flex-direction: column; font-size: 16px;">
+        <div style="color:#e6a23c;
+        border-radius: 20px; margin-bottom: 20px; ">
+
+          <strong><i class="el-icon-info"></i> [Intro]</strong>
+          Review the provided XAI result for this instance. Interact with the LLM by asking relevant questions.
+          From the answers you receive, select the most informative ones to help you generate an updated and informative
+          caption for the visualization.<a style="cursor:pointer" @click="startGuide">Guide</a>
+
+        </div>
+        <!-- <el-divider></el-divider> -->
+        <!-- XGBoost model trained on the classic UCI adult income dataset (which is classification task to predict if people
+        made over 50k in the 90s -->
+        <div id="visRes">
+          XGBoost model trained on the classic ...
+          <div style="text-align:center;">
+            <img style="margin-top:10px;" src="Frontend/img/income.png" width="90%" />
+
+          </div>
+        </div>
+
+
+        <article style="margin-top:20px; border: 1px solid; flex: 1;overflow: auto;" v-if="!testing" id="caption">
+          <span aria-busy="true" v-if="isGeneratingCaption">Generating the Caption for you...</span>
+          <div v-if="!isGeneratingCaption" style="font-size:16px; color:#fff;">
+            {{caption}}
+          </div>
+        </article>
+        <div>
+          <button style="margin-top: 10px;
+          height: 50px;
+          font-size: 16px;
+          line-height: 50px;
+          padding: 0 10px;" @click="genCaption" v-if="!isGeneratingCaption" :disabled="updateCaptionDisabled"><i
+              class="el-icon-refresh-right"></i>Update Caption</button>
+
+          <button style="margin-top: 10px;
+          height: 50px;
+          font-size: 16px;
+          line-height: 50px;
+          padding: 0 10px;" @click="genCaption" v-if="!isGeneratingCaption" :disabled="!caption"><i
+              class="el-icon-upload2"></i> Submit Caption</button>
+          <!-- <a style="cursor:pointer;" @click="testing=true">Go To Testing <i class="el-icon-d-arrow-right"></i></a> -->
+        </div>
+        <article style="margin-top:20px;" v-if="testing">
+          <header>
+            <strong>🗓️ Testing</strong>
+          </header>
+          <!-- <ul>
+            <li class="question-item" v-for="item in template_questions" @click="selectTemplate(item)">{{item.content}}
+            </li>
+          </ul> -->
+          <div style="display:flex; justify-content:space-between; position: absolute;width: 80%; bottom: 20px;">
+            <a style="cursor:pointer" @click="testing=false"><i class="el-icon-d-arrow-left"></i> Go Back Learning</a>
+            <a style="cursor:pointer" @click="testing=false"> Next Task <i class="el-icon-d-arrow-right"></i></a>
+
+          </div>
+
+        </article>
+      </article>
+      <div style="flex: 1;height: calc(100vh - 100px);">
+        <div style="display: flex;">
+          <span style="position:absolute; "><i class="el-icon-chat-line-round"></i> Chat History</span>
+          <div class="dialog" ref="dialogContent"
+            style="height:calc(100vh - 150px); flex: 1; overflow:auto; padding:20px; margin-top: 50px;">
+            <el-timeline>
+              <el-timeline-item v-for="(message, index) in messages" :key="index" :timestamp="message.time"
+                placement="top">
+                <input :disabled="isGeneratingCaption" v-if="message.sender === 'robot' && index !==0"
+                  class="answer_selector" type="checkbox" :checked="selectedAnswerIndicates.includes(index)"
+                  @change="toggleSelection(index)" />
+                <div
+                  :class="{'user-message': message.sender === 'user', 'robot-message': message.sender === 'robot','selected_answers': selectedAnswerIndicates.includes(index) }">
+                  <div class="avatar"
+                    :class="{'avatar-user': message.sender === 'user', 'avatar-robot': message.sender === 'robot'}">
+                  </div>
+                  <p style="display:inline-block">{{ message.text }}</p>
+                </div>
+              </el-timeline-item>
+              <div style="text-align:center; color:#656875;" v-if="!isGeneratingAnswer">
+                <span>------ Newest ----- </span>
+              </div>
+
+            </el-timeline>
+
+            <span aria-busy="true" v-if="isGeneratingAnswer">Generating the answer for you...</span>
+          </div>
+          <span style="position:absolute; left:74% "><i class="el-icon-edit"></i> Ask Question</span>
+          <div v-if="!testing"
+            style="margin-top:50px;width: 40%; margin-left: 20px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid rgb(45 48 66);padding:10px; border-radius:20px;">
+            <div id="TemplateQuestion">
+              <span style="color: rgb(163 155 185);display:inline-block;margin-bottom: 6px;"><i
+                  class="el-icon-question"></i> Template Questions</span>
+              <ul style="flex:1; padding:0; font-size:16px;">
+                <li class="question-item" v-for="item in template_questions" @click="selectTemplate(item)">
+                  {{item.content}}
+                </li>
+              </ul>
+
+            </div>
+
+            <textarea style="height:100%;" type="text" name="text" v-model="question"
+              placeholder="Type or select your questions..." aria-label="Text"
+              :disabled="isGeneratingAnswer"></textarea>
+            <el-button class="aks_btn" icon="el-icon-s-promotion" size="mini" type="primary" @click="send_question"
+              :disabled="isGeneratingAnswer || !question.length">Ask Question</el-button>
+
+          </div>
+        </div>
+
+      </div>
+
+
+    </div>
+
+
+
+  </main>
+</body>
+
+</html>
+<script>
+  window.vueApp = new Vue({
+    el: '#app',
+    data() {
+      return {
+        testing: false,
+        question: '',
+        answer: '',
+        newMessage: '',
+        messages: [],
+        caption: '',
+        isGeneratingAnswer: false,
+        isGeneratingCaption: false,
+        updateCaptionDisabled: true,
+        selectedAnswerIndicates: [],
+        template_questions: [
+          {
+            'content': `What is the most influential feature based on these SHAP values?`,
+            type: 1
+          },
+          {
+            'content': `What is the minimum change required for this instance to get a different prediction?`,
+            type: 2
+          }
+
+        ]
+      }
+    },
+    methods: {
+      send_question() {
+        this.isGeneratingAnswer = true;
+        sendQuestion(this.question)
+      },
+      selectTemplate(item) {
+        this.question = item.content
+      },
+      genCaption() {
+        this.isGeneratingCaption = true
+        let info = ''
+        if (this.messages.length && this.selectedAnswerIndicates) {
+          for (i = 0; i < this.selectedAnswerIndicates.length; i++) {
+            let index = this.selectedAnswerIndicates[i]
+            let cur_info = this.messages[index].text
+            info = info + ';' + cur_info
+          }
+        }
+        console.log('new context:', info)
+        generateCaption(info)
+      },
+      toggleSelection(index) {
+        const pos = this.selectedAnswerIndicates.indexOf(index);
+        if (pos > -1) {
+          this.selectedAnswerIndicates.splice(pos, 1); // Remove index if already selected
+        } else {
+          this.selectedAnswerIndicates.push(index); // Add index if not selected
+        }
+      },
+      startGuide() {
+        this.$nextTick(() => {
+          this.driver = new Driver();
+          const steps = [
+            {
+              element: '#visRes',
+              popover: {
+                title: 'XAI output',
+                description: 'XAI ouput',
+                position: 'right'
+              },
+            },
+            {
+              element: '#caption',
+              popover: {
+                title: 'Caption',
+                description: 'LLM generated captions, you can update by select new answers and submit',
+                position: 'right'
+              },
+            },
+            {
+              element: '#TemplateQuestion',
+              popover: {
+                title: 'Template question',
+                description: 'You can click choose the question to intereact with LLM',
+                position: 'left'
+              },
+            }
+
+          ]
+          this.driver.defineSteps(steps)
+          this.driver.start()
+        })
+      }
+    },
+    watch: {
+      messages(newVal) {
+        if (newVal) {
+          setTimeout(() => {
+            const dialogContent = this.$refs.dialogContent;
+            dialogContent.scrollTop = dialogContent.scrollHeight + 200;
+          }, 100);
+        }
+      },
+      selectedAnswerIndicates(newVal) {
+        if (newVal) {
+          console.log("newVal", newVal.length)
+          if (newVal.length > 0) {
+            this.updateCaptionDisabled = false
+          } else {
+            this.updateCaptionDisabled = true
+          }
+        }
+
+      }
+    },
+
+    created() {
+      getHistorymsg()
+    },
+    mounted() {
+      setTimeout(() => {
+        const dialogContent = this.$refs.dialogContent;
+        console.log("dialogContent", dialogContent, dialogContent.scrollTop, dialogContent.scrollHeight)
+        dialogContent.scrollTop = dialogContent.scrollHeight + 200;
+      }, 300);
+      this.isGeneratingCaption = true
+      generateCaption('')
+    }
+  })
+</script>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Open Sans', Arial, sans-serif;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  #app {
+    padding: 0;
+  }
+
+  .app-container {
+    padding: 20px;
+    display: flex;
+  }
+
+  .aks_btn {
+    float: right;
+    margin-top: 6px;
+  }
+
+  .el-header {
+    line-height: 50px;
+    color: white;
+    background-color: #4e4172;
+    font-size: 24px;
+    font-weight: 700;
+  }
+
+  .dialog {
+    border-radius: 20px;
+    background-color: #08090c;
+
+  }
+
+  .avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .avatar-user {
+    background-color: #167190;
+    /* Gold color for user */
+    vertical-align: middle;
+    margin-right: 10px;
+  }
+
+  .avatar-robot {
+    background-color: #FFD700;
+    /* Deep Sky Blue color for robot */
+    vertical-align: middle;
+    margin-right: 10px;
+  }
+
+  .message-user {
+    justify-content: flex-end;
+  }
+
+  .message-robot {
+    justify-content: flex-start;
+
+  }
+
+  .message-content {
+    max-width: 80%;
+  }
+
+  .user-message {
+    font-size: 16px;
+    justify-content: flex-end;
+    padding: 20px 20px 0 20px;
+    background: #181c25;
+    border-radius: 20px;
+  }
+
+  .robot-message {
+    font-size: 16px;
+    background: #181c25;
+    padding: 20px 20px 0 20px;
+    border-radius: 20px;
+    justify-content: flex-start;
+  }
+
+  .selected_answers {
+    border: 3px solid gold;
+  }
+
+  .question-item {
+    background-color: #4e4172;
+    padding: 4px 10px;
+    border-radius: 15px;
+    list-style-position: inside;
+  }
+
+  .question-item:hover {
+    color: #FFD700;
+    cursor: pointer;
+    background-color: #4e4172;
+  }
+
+  .el-timeline-item {
+    border-bottom: 1px solid #373535;
+    padding-bottom: 5px;
+    position: relative;
+  }
+
+  .answer_selector {
+    position: absolute;
+    top: 40px;
+    right: 10px;
+  }
+</style>
