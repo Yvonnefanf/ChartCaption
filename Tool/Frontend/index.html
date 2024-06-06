@@ -123,8 +123,20 @@
               <span style="color: rgb(163 155 185);display:inline-block;margin-bottom: 6px;"><i
                   class="el-icon-question"></i> Template Questions</span>
               <ul style="flex:1; padding:0; font-size:16px;">
-                <li class="question-item" v-for="item in template_questions" @click="selectTemplate(item)">
+                <li class="question-item" v-for="item in template_questions" @click="selectTemplate($event, item)">
                   {{item.content}}
+                </li>
+                <li class="question-item" @click="selectTemplate($event, getWhatIfTemplateArgs())">
+                  If change the feature:  
+                  <el-select class="feature_selection" placeholder="please select.." v-model="curFeature">
+                    <el-option
+                      v-for="item in featureList"
+                      :key="item"
+                      :label="item"
+                      :value="item">
+                    </el-option>
+                  </el-select size="mini" class="feature_selection"> to 
+                  <input @blur.stop="preventParentClick" style="height:20px; width:80px; margin:0;" class="feature_value" v-model="cureFeatureVal"></input>
                 </li>
               </ul>
 
@@ -167,26 +179,37 @@
         updateCaptionDisabled: true,
         sentencehover: null,
         selectedAnswerIndicates: [],
+        curFeature:'',
+        cureFeatureVal:null,
+        featureList:[
+        'Age', 'Workclass', 'Education-Num', 'Marital Status', 'Occupation','Relationship', 'Race', 'Sex', 'Capital Gain', 'Capital Loss', 'Hours per week','Country'
+        ],
         template_questions: [
           {
             'content': `What is the most influential feature based on these SHAP values?`,
             type: 1
-          },
-          {
-            'content': `What is the minimum change required for this instance to get a different prediction?`,
-            type: 2
           }
-
         ]
       }
     },
     methods: {
+      preventParentClick(event) {
+        event.stopPropagation();
+      },
+      getWhatIfTemplateArgs() {
+        return {
+          content: `If change the feature:${this.curFeature} to ${this.cureFeatureVal}`
+        };
+      },
       send_question() {
         this.isGeneratingAnswer = true;
         sendQuestion(this.question)
       },
-      selectTemplate(item) {
-        this.question = item.content
+      selectTemplate(e, item) {
+        if (event.target.tagName.toLowerCase() !== 'input') {
+          this.question = item.content
+        }
+        
       },
       genCaption() {
         this.isGeneratingCaption = true
@@ -421,4 +444,17 @@
     background: #63558b;
     cursor: pointer;
   }
+  .feature_selection .el-input--suffix .el-input__inner{
+    height: 25px;
+    margin:0;
+    padding: 0 4px;
+    width: 120px;
+  }
+  .feature_selection .el-input__suffix{
+    margin-top: 10px;
+  }
+  .feature_value{
+    width: 80px;
+  }
+
 </style>

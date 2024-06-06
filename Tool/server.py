@@ -7,9 +7,9 @@ import datetime
 from utils import load_model_and_tokenizer, initialize_device
 
 
-# MODEL_DIRECTORY = "/mnt/raid/yifan/LLMs/models--meta-llama--Llama-2-7b-chat-hf/snapshots/f5db02db724555f92da89c216ac04704f23d4590" # 7B
-MODEL_DIRECTORY = "/mnt/raid/yifan/LLMs/models--meta-llama--Llama-2-13b-chat-hf/snapshots/a2cb7a712bb6e5e736ca7f8cd98167f81a0b5bd8" # 13B
-DEVICE = initialize_device(cuda_index=0)
+MODEL_DIRECTORY = "/mnt/raid/yifan/LLMs/models--meta-llama--Llama-2-7b-chat-hf/snapshots/f5db02db724555f92da89c216ac04704f23d4590" # 7B
+# MODEL_DIRECTORY = "/mnt/raid/yifan/LLMs/models--meta-llama--Llama-2-13b-chat-hf/snapshots/a2cb7a712bb6e5e736ca7f8cd98167f81a0b5bd8" # 13B
+DEVICE = initialize_device(cuda_index=1)
 
 # Load model and tokenizer
 model, tokenizer = load_model_and_tokenizer(MODEL_DIRECTORY, DEVICE)
@@ -238,7 +238,7 @@ def GUI():
     # return render_template("SilasIndex.html")
     return send_from_directory(app.static_folder, 'index.html')
 
-    
+  
 
 if __name__ == '__main__':
-    app.run(debug=False, port=3333)
+    app.run(debug=True, port=6001)

@@ -133,5 +133,25 @@
         "text": "[/INST]  Based on the SHAP values you provided, the most influential feature for the predicted outcome is \"Capital Gain\". The SHAP value of -56 is the highest absolute value among all the features, indicating that it has the most significant impact on the predicted outcome.",
         "time": "2024-05-21 14:34:23",
         "sender": "robot"
+    },
+    {
+        "text": "What is the most influential feature based on these SHAP values?",
+        "time": "2024-05-26 21:25:00",
+        "sender": "user"
+    },
+    {
+        "text": "[/INST] Most influential feature: Capital Gain, the SHAP value of this feature is -56, which is the highest absolute value in all the features.",
+        "time": "2024-05-26 21:25:00",
+        "sender": "robot"
+    },
+    {
+        "text": "What is the most influential feature based on these SHAP values?",
+        "time": "2024-05-26 21:25:10",
+        "sender": "user"
+    },
+    {
+        "text": "[/INST] Most influential feature: Capital Gain, the SHAP value of this feature is -56, which is the highest absolute value in all the features.",
+        "time": "2024-05-26 21:25:11",
+        "sender": "robot"
     }
 ]
