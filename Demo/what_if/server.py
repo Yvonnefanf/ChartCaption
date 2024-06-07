@@ -160,8 +160,13 @@ def update_annotation():
     ax.spines['right'].set_visible(False)
     ax.spines['left'].set_visible(False)
     # Save the plot as an image file
-    now=datetime.now()
-    image_path = 'imgs/lime_feature_importance_newinstance_{}{}.png'.format(instance_index,now)
+    # Convert modified_features and update_values to string format
+    modified_features_str = '_'.join(modified_features)
+    update_values_str = '_'.join(map(str, update_values))
+
+    # Combine them into the file name
+    image_path = 'imgs/lime_feature_importance_newinstance_{}_{}_{}.png'.format(instance_index, modified_features_str, update_values_str)
+
     plt.savefig(image_path,transparent=True)
     plt.close()
     return jsonify({'img_path': image_path,'features_with_bound':[],"value_list":[],"predict":int(predict[0])})

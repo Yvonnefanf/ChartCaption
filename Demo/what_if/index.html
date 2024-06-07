@@ -57,12 +57,17 @@
         <div style="display: flex;justify-content: center;
         align-items: center; ">Instance Index:
         <input style="width:200px; margin:0 20px;" type="number" v-model="instance_index" placeholder="Input Index" aria-label="Text" />
-        <button @click="fetchData">Load Feature Importance</button>
+        <button @click="fetchData">Load Instance Info</button>
       </div>
       <span aria-busy="true" v-if="isLoading">Generating...</span>
-      <div style="width: 100%;text-align: center; margin-top: 20px;">
-        Model Prediction: Quality {{predict==null?'--':(predict > 0?'>=7':"<7")}}
+    
+      <div style="text-align: center; margin-top: 20px;">
+        <el-radio v-model="mode" label="prediction">Prediction</el-radio>
+        <el-radio v-model="mode" label="featureImportance">Feature Importance</el-radio>
+        <el-radio v-model="mode" label="GAM">GAM</el-radio>
       </div>
+
+
       <div style="display:flex">
         <div class="block-container" v-if="features_with_bound.length && value_list.length">
           <div class="block" v-for="(item, index) in features_with_bound" :class="{ 'highlight': value_list[index] !== initial_values[index] }">
@@ -83,7 +88,14 @@
           </div>
         </div>
         <div>
-          <img v-if="org_instance_chart_url.length" height="300px" :src="org_instance_chart_url"/>  
+          <div v-if="mode=='prediction'" 
+          style="width: 100%;text-align: center; margin-top: 200px; width: 100%;margin-left: 50px; border: 1px solid; padding: 10px;">
+          <span style="font-weight: 600;">Model Prediction</span>
+            <br/>
+            <span style="font-size: 14px;">Quality {{predict==null?'--':(predict > 0?'>=7':"<7")}}</span>
+          </div>
+          <img v-if="org_instance_chart_url.length && mode=='featureImportance'" height="300px" :src="org_instance_chart_url"/>  
+          <img v-if="org_instance_chart_url.length && mode=='GAM'" height="300px" src="./imgs/gam.png"/> 
         </div>
         
       </div>
@@ -110,7 +122,8 @@
         value_list:[],
         initial_values: [],
         predict:null,
-        isLoading:false
+        isLoading:false,
+        mode:'prediction'
       }
     },
     methods: {
@@ -215,7 +228,7 @@
   }
   
   .block{
-    font-size: 16px;
+    font-size: 14px;
     display: flex;
     align-items: center;
     height: 35.5px;
@@ -223,6 +236,8 @@
   }
   .demonstration{
     margin-right: 10px;
+    min-width: 130px;
+    text-align: right;
   }
   .highlight {
     color:deeppink;
@@ -234,6 +249,7 @@
     top:24px;
     font-size: 12px;
     font-weight: 400;
+    right: 140px;
   }
 
 </style>
