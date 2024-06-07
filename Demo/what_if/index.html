@@ -22,6 +22,8 @@
     <div style="display:flex;padding: 0 20px;">
       <article style="width:25%; margin-right:20px;" class="left-panel">
         <div >
+          Chain
+          <el-divider></el-divider>
           <el-timeline>
             <el-timeline-item timestamp="Understand the Context and Goal" placement="top" color=#0bbd87>
               <span>
@@ -67,12 +69,16 @@
         </div>
       </article>
       <article style="flex: 1" >
-        <div style="display: flex;justify-content: center;
-        align-items: center; ">Instance Index:
-        <el-input style="width:200px; margin:0 20px;" @change="fetchData" type="number" v-model="instance_index" placeholder="Input Index" aria-label="Text" ></el-input>
+        <div style="display: flex;
+        align-items: center; ">
+        Dataset: <el-select style="height: 40px; margin:0 10px;" placeholder="please select" v-model="dataSet">
+          <el-option label="Red Wine Quality" value="RedWine">
+          </el-option>
+        </el-select> Instance Index:
+        <el-input style="width:100px; margin:0 20px; height:40px;" @change="fetchData" type="number" v-model="instance_index" placeholder="Input Index" aria-label="Text" ></el-input>
         <!-- <button @click="fetchData">Load Instance Info</button> -->
       </div>
-      <span style="position:absolute" aria-busy="true" v-if="isLoading">Loading...</span>
+      <span style="position:absolute;top: 50%;left: 50%;" v-if="isLoading" aria-busy="true" >Loading...</span>
     
       <div style="text-align: center; margin-top: 20px;">
         <el-radio v-model="mode" label="retrieval">Prediction(Retrieval)</el-radio>
@@ -125,7 +131,13 @@
           <div class="block" v-for="(item, index) in features_with_bound" :class="{ 'highlight': value_list[index] !== initial_values[index] }">
             <span class="demonstration">{{item.name}}: </span>
             <span v-if="value_list[index] != initial_values[index]" class="annotation">{{initial_values[index]}}->{{value_list[index]}} </span>
-            <el-slider show-stops :step="computeStep(item.range)" style="width:130px;" v-model="value_list[index]" :min="item.range[0]" :max="item.range[2]"></el-slider>
+            <el-slider 
+            @change="updateAnnotation"
+            show-stops :step="computeStep(item.range)" 
+            style="width:130px;" 
+            v-model="value_list[index]" 
+            :min="item.range[0]" 
+            :max="item.range[2]"></el-slider>
           </div>
           <!-- <div v-for="item in features_with_bound">
             <label>
@@ -136,7 +148,7 @@
           <el-divider></el-divider>
           <div>
             <el-button @click="fetchData">Reset</el-button>
-            <el-button @click="updateAnnotation" type="primary" @click="value_list=initial_values" :disabled="arraysAreEqual">Show Result</el-button>
+            <!-- <el-button @click="updateAnnotation" type="primary" @click="value_list=initial_values" :disabled="arraysAreEqual">Show Result</el-button> -->
           </div>
         </div>
         <div>
@@ -166,6 +178,7 @@
     el: '#app',
     data() {
       return {
+        dataSet:'RedWine',
         org_instance_chart_url:'',
         instance_index:0,
         current_feature:'',
@@ -354,6 +367,9 @@
     max-width: 100px;
   }
   .el-select .el-input__inner{
+    height: 40px;
+  }
+  .el-input .el-input__inner{
     height: 40px;
   }
   .el-input__suffix{
