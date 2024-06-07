@@ -19,36 +19,49 @@
 
 <body>
   <main id="app">
-    <div style="display:flex">
-      <article style="width:30%; margin-right:20px;" class="left-panel">
+    <div style="display:flex;padding: 0 20px;">
+      <article style="width:25%; margin-right:20px;" class="left-panel">
         <div >
           <el-timeline>
-            <el-timeline-item timestamp="Step 1" placement="top" color=#0bbd87>
-              <el-card>
-                <h6>Understand the Context and Goal</h6>
-                <p>
-                  Goal: Predict the wine quality classification (≥ 7 or < 7) 
-                  for the given instance using the provided features and their importances.
-                  Context a set of features with specific values and the corresponding feature importance scores from the model.</p>
-              </el-card>
+            <el-timeline-item timestamp="Understand the Context and Goal" placement="top" color=#0bbd87>
+              <span>
+                Goal: Predict the wine quality classification.
+                Context:...
+              </span> 
             </el-timeline-item>
-            <el-timeline-item timestamp="Step 2" placement="top" color="#0bbd87">
-              <el-card>
-                <h6>Analyze Feature Values and Importances</h6>
-                <p>Note the importance scores to identify which features have the most influence on the prediction.</p>
-              </el-card>
+            <el-timeline-item v-if="mode=='featureImportance'" timestamp="Analyze Feature Values and Importances" placement="top" color="#0bbd87">
+                <span>Note the importance scores to identify which features have the most influence on the prediction.</span>
             </el-timeline-item>
-            <el-timeline-item timestamp="Step 3" placement="top" color="#0bbd87">
+            <el-timeline-item v-if="mode=='retrieval'" timestamp="Retrieve examples" placement="top" color="#0bbd87">
+              <span>
+                <ul>
+                  <li>Similar</li>
+                  <li>Typical</li>
+                  <li>Boundary</li>
+                </ul>
+              </span>
+          </el-timeline-item>
+            <!-- <el-timeline-item timestamp="Step 3" placement="top" color="#0bbd87">
+              <span style="font-weight:600;" >Create an Initial Hypothesis</span>
+            </el-timeline-item> -->
+            <el-timeline-item v-if="mode!='retrieval'" timestamp="Step 3" placement="top" icon="el-icon-more" type="primary">
               <el-card>
-                <h6>Create an Initial Hypothesis</h6>
-                <p>...</p>
-              </el-card>
-            </el-timeline-item>
-            <el-timeline-item timestamp="Step 3" placement="top" icon="el-icon-more" type="primary">
-              <el-card>
-                <h6>What If</h6>
+                <span style="font-weight:600;">What If</span>
                 <p></p>
               </el-card>
+            </el-timeline-item>
+            <el-timeline-item placement="top" timestamp="Analyze the Change" color="#0bbd87">
+              <span style="font-weight:600;"> Compare the new predictions. </span>
+            </el-timeline-item>
+            <el-timeline-item placement="top" timestamp="Infer the Current Instance's Prediction" color="#0bbd87">
+              <el-radio v-model="user_res" label="1">AI Prediction: Quality >=7</el-radio>
+              <el-radio v-model="user_res" label="0">AI Prediction: Quality < 7</el-radio>
+            </el-timeline-item>
+            <el-timeline-item placement="top" timestamp="Validate the Prediction" color="#0bbd87">
+              <el-button type="primary" :disabled="user_res==-1">Show AI Prediction</el-button>
+            </el-timeline-item>
+            <el-timeline-item placement="top" timestamp="Validate the Prediction" color="#0bbd87">
+              <el-button type="primary" :disabled="user_res==-1">Next Instance</el-button>
             </el-timeline-item>
           </el-timeline>
         </div>
@@ -56,23 +69,62 @@
       <article style="flex: 1" >
         <div style="display: flex;justify-content: center;
         align-items: center; ">Instance Index:
-        <input style="width:200px; margin:0 20px;" type="number" v-model="instance_index" placeholder="Input Index" aria-label="Text" />
-        <button @click="fetchData">Load Instance Info</button>
+        <el-input style="width:200px; margin:0 20px;" @change="fetchData" type="number" v-model="instance_index" placeholder="Input Index" aria-label="Text" ></el-input>
+        <!-- <button @click="fetchData">Load Instance Info</button> -->
       </div>
-      <span aria-busy="true" v-if="isLoading">Generating...</span>
+      <span style="position:absolute" aria-busy="true" v-if="isLoading">Loading...</span>
     
       <div style="text-align: center; margin-top: 20px;">
-        <el-radio v-model="mode" label="prediction">Prediction</el-radio>
+        <el-radio v-model="mode" label="retrieval">Prediction(Retrieval)</el-radio>
+        <el-radio v-model="mode" label="prediction">Prediction(What if)</el-radio>
         <el-radio v-model="mode" label="featureImportance">Feature Importance</el-radio>
         <el-radio v-model="mode" label="GAM">GAM</el-radio>
       </div>
+      <div class="retrival-container" v-if="mode =='retrieval'">
+        <el-select style="height: 40px;" placeholder="please select" v-model="cur_retrieval_type">
+          <el-option label="Similar Instance" value="similar">
+          </el-option>
+          <el-option label="Typicla Instance" value="typical">
+          </el-option>
+          <el-option label="Boundary Instance" value="boundary">
+          </el-option>
+        </el-select>
+        <el-button icon="el-icon-search" type="primary" @click="searchInstance"> Search</el-button>
+      </div>
 
-
-      <div style="display:flex">
-        <div class="block-container" v-if="features_with_bound.length && value_list.length">
+      <div style="display:flex" v-if="mode =='retrieval' && features_with_bound.length && value_list.length">
+        <div class="block-container">
+          <div>Current Instance</div>
           <div class="block" v-for="(item, index) in features_with_bound" :class="{ 'highlight': value_list[index] !== initial_values[index] }">
             <span class="demonstration">{{item.name}}: </span>
-            <span v-if="value_list[index] !== initial_values[index]" class="annotation">{{initial_values[index]}}->{{value_list[index]}} </span>
+            <el-progress style="width:100px;" stroke-width="10" :percentage="computePercentage(item.range)" :show-text="false">{{item.range[1]}}</el-progress>
+            <!-- <el-slider show-stops :step="computeStep(item.range)" style="width:130px;" v-model="value_list[index]" :min="item.range[0]" :max="item.range[2]"></el-slider> -->
+          </div>
+        </div>
+        <div class="block-container" v-if="ex_instance_0.length">
+          <div>Prediction: Low Quality</div>
+          <div class="block" v-for="(item, index) in ex_instance_0" :class="{ 'highlight': value_list[index] !== initial_values[index] }">
+            <span class="demonstration">{{item.name}}: </span>
+            <el-progress style="width:100px;" stroke-width="10" :percentage="computePercentage_(item.value, index)" :show-text="false">{{item.value}}</el-progress>
+            <span v-if="features_with_bound[index].range[1] !== item.value" style="right:100px" class="annotation">{{features_with_bound[index].range[1]}}->{{item.value}} </span>
+            <!-- <el-slider show-stops :step="computeStep(item.range)" style="width:130px;" v-model="value_list[index]" :min="item.range[0]" :max="item.range[2]"></el-slider> -->
+          </div>
+        </div>
+        <div class="block-container" v-if="ex_instance_1.length">
+          <div>Prediction: High Quality</div>
+          <div class="block" v-for="(item, index) in ex_instance_1" :class="{ 'highlight': value_list[index] !== initial_values[index] }">
+            <span class="demonstration">{{item.name}}: </span>
+            <el-progress style="width:100px;" stroke-width="10" :percentage="computePercentage_(item.value, index)" :show-text="false">{{item.value}}</el-progress>
+            <span v-if="features_with_bound[index].range[1] != item.value" style="right:100px" class="annotation">{{features_with_bound[index].range[1]}}->{{item.value}} </span>
+            <!-- <el-slider show-stops :step="computeStep(item.range)" style="width:130px;" v-model="value_list[index]" :min="item.range[0]" :max="item.range[2]"></el-slider> -->
+          </div>
+        </div>
+      </div>
+      <div style="display:flex" v-if="mode!='retrieval' && features_with_bound.length && value_list.length ">
+        <div class="block-container">
+          <div class="block" v-for="(item, index) in features_with_bound" :class="{ 'highlight': value_list[index] !== initial_values[index] }">
+            <span class="demonstration">{{item.name}}: </span>
+            <span v-if="value_list[index] != initial_values[index]" class="annotation">{{initial_values[index]}}->{{value_list[index]}} </span>
             <el-slider show-stops :step="computeStep(item.range)" style="width:130px;" v-model="value_list[index]" :min="item.range[0]" :max="item.range[2]"></el-slider>
           </div>
           <!-- <div v-for="item in features_with_bound">
@@ -88,7 +140,7 @@
           </div>
         </div>
         <div>
-          <div v-if="mode=='prediction'" 
+          <div v-if="org_instance_chart_url.length && mode=='prediction'" 
           style="width: 100%;text-align: center; margin-top: 200px; width: 100%;margin-left: 50px; border: 1px solid; padding: 10px;">
           <span style="font-weight: 600;">Model Prediction</span>
             <br/>
@@ -123,11 +175,17 @@
         initial_values: [],
         predict:null,
         isLoading:false,
-        mode:'prediction'
+        mode:'retrieval',
+        cur_retrieval_type:'similar',
+        ex_instance_0:[],
+        ex_instance_1:[],
+        user_res:-1
       }
     },
     methods: {
           async fetchData() {
+            this.ex_instance_0=[]
+            this.ex_instance_1=[]
             this.predict = null
             this.isLoading = true
             try {
@@ -190,6 +248,48 @@
               format_ = 5
             }
             return Number(step.toFixed(format_)); // Convert to number after fixing to 2 decimal places
+          },
+          computePercentage(range){
+            const percentage = ((range[1] - range[0]) / (range[2] - range[0])) * 100;
+            let format_ = 1
+            return Number(percentage.toFixed(format_)); // Convert to number after fixing to 2 decimal places
+          },
+          computePercentage_(value, index){
+            console.log("index",index,value)
+            const range = this.features_with_bound[index].range
+            const percentage = ((value - range[0]) / (range[2] - range[0])) * 100;
+            let format_ = 1
+            return Number(percentage.toFixed(format_)); 
+          },
+          async searchInstance(){
+            this.isLoading = true
+            try {
+              const headers = {
+                'Content-Type': 'application/json'
+              };
+              const response = await fetch(`${window.location.href}instance_retrieval`, {
+                method: 'POST',
+                body: JSON.stringify({ 'index':this.instance_index, 'type': this.cur_retrieval_type }),
+                headers: headers,
+                mode: 'cors'
+              });
+              const res = await response.json();
+              this.features_with_bound.forEach(feature => {
+                const name = feature.name;
+                if (res.instance_0.hasOwnProperty(name)) {
+                  this.ex_instance_0.push({name: name, value: res.instance_0[name]});
+                }
+                if (res.instance_1.hasOwnProperty(name)) {
+                  this.ex_instance_1.push({name: name, value: res.instance_1[name]});
+                }
+              });
+              console.log("ex_instance_0",this.ex_instance_0,this.ex_instance_1)
+              
+              this.isLoading = false
+            } catch (error) {
+              console.error('Error fetching data:', error);
+              this.isLoading = false
+            }
           }
 
         
@@ -204,7 +304,7 @@
 
     },
     mounted() {
-
+      this.fetchData()
     }
   })
 </script>
@@ -220,7 +320,7 @@
     overflow: auto;
   }
   .block-container {
-    margin-top: 34px;
+    margin-top: 10px;
     display: flex;
     flex-direction: column;
     align-items: flex-end; /* Right-align the blocks */
@@ -250,6 +350,21 @@
     font-size: 12px;
     font-weight: 400;
     right: 140px;
+    text-wrap: nowrap;
+    max-width: 100px;
+  }
+  .el-select .el-input__inner{
+    height: 40px;
+  }
+  .el-input__suffix{
+    height: 40px;
+  }
+  .retrival-container{
+    text-align: center;
+    margin-top: 10px;
+  }
+  .el-select-dropdown{
+    margin-top: -15px!important;
   }
 
 </style>

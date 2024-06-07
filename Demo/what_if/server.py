@@ -10,6 +10,8 @@ import lime
 import re
 from datetime import datetime
 from matplotlib.lines import Line2D
+from sklearn.neighbors import NearestNeighbors
+
 random_seed = 42
 import matplotlib.pyplot as plt
 np.random.seed(random_seed)
@@ -170,6 +172,56 @@ def update_annotation():
     plt.savefig(image_path,transparent=True)
     plt.close()
     return jsonify({'img_path': image_path,'features_with_bound':[],"value_list":[],"predict":int(predict[0])})
+
+@app.route('/instance_retrieval', methods=['POST','GET'])
+@cross_origin()
+def instance_retrieval():
+    random_seed = 42
+
+    np.random.seed(random_seed)
+    random.seed(random_seed)
+    
+    data = request.get_json()
+    instance_index = data.get('index')
+    instance_index = int(instance_index)
+    retrieve_instance_type = data.get('type')
+    predictions = model.predict(X_train)
+    # Get the given instance
+    instance = X_train.iloc[instance_index].copy()
+    # Separate instances by prediction type
+    instances_0 = X_train[predictions == 0]
+    instances_1 = X_train[predictions == 1]
+    
+    if retrieve_instance_type == 'similar':
+        most_similar_0, most_similar_1 = similar_retrival(instance, instances_0,instances_1)
+    print("this step 3")
+    # Convert to list of dictionaries for JSON response
+    def convert_to_feature_dict(instance):
+        # return {f'feature_{i}': value for i, value in enumerate(instance)}
+        return instance.to_dict()
+    
+    response = {
+        'instance_0': convert_to_feature_dict(most_similar_0),
+        'instance_1': convert_to_feature_dict(most_similar_1)
+    }
+    return jsonify(response)
+
+def similar_retrival(instance, instances_0,instances_1):
+    
+    # Calculate nearest neighbors within the same prediction class
+    def find_nearest_neighbors(instances, instance, n_neighbors=1):
+        nbrs = NearestNeighbors(n_neighbors=n_neighbors+1).fit(instances)
+        distances, indices = nbrs.kneighbors([instance])
+        return indices[0][1:]  # Exclude the first index (itself)
+    
+    # Find nearest neighbors for the given instance in class 0 and class 1
+    nearest_0_index = find_nearest_neighbors(instances_0, instance)
+    nearest_1_index = find_nearest_neighbors(instances_1, instance)
+    print("this step 2")
+    # Retrieve the most similar instances
+    most_similar_0 = instances_0.iloc[nearest_0_index[0]]
+    most_similar_1 = instances_1.iloc[nearest_1_index[0]]
+    return most_similar_0, most_similar_1
   
   
 if __name__ == '__main__':
