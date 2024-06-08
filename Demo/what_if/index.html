@@ -129,7 +129,11 @@
           <div class="block" v-for="(item, index) in ex_instance_0" :class="{ 'highlight': value_list[index] !== initial_values[index] }">
             <span class="demonstration">{{item.name}}: </span>
             <el-progress style="width:100px;" stroke-width="10" :percentage="computePercentage_(item.value, index)" :show-text="false">{{item.value}}</el-progress>
-            <span v-if="features_with_bound[index].range[1] !== item.value" style="right:100px" class="annotation">{{features_with_bound[index].range[1]}}->{{item.value}} </span>
+            <span v-if="features_with_bound[index].range[1] !== item.value" style="right:100px" class="annotation">
+              <span :class="{ 'incremental': getChange(item.value,features_with_bound[index].range) < 1 && getChange(item.value,features_with_bound[index].range) > -1 }">
+              <span v-if="getChange(item.value,features_with_bound[index].range)>0">+</span>
+              {{getChange(item.value,features_with_bound[index].range)}}% 
+            </span>
             <!-- <el-slider show-stops :step="computeStep(item.range)" style="width:130px;" v-model="value_list[index]" :min="item.range[0]" :max="item.range[2]"></el-slider> -->
           </div>
         </div>
@@ -147,7 +151,12 @@
           <div class="block" v-for="(item, index) in ex_instance_1" :class="{ 'highlight': value_list[index] !== initial_values[index] }">
             <span class="demonstration">{{item.name}}: </span>
             <el-progress style="width:100px;" stroke-width="10" :percentage="computePercentage_(item.value, index)" :show-text="false">{{item.value}}</el-progress>
-            <span v-if="features_with_bound[index].range[1] != item.value" style="right:100px" class="annotation">{{features_with_bound[index].range[1]}}->{{item.value}} </span>
+            <span v-if="features_with_bound[index].range[1] != item.value" style="right:100px" class="annotation">
+              <span :class="{ 'incremental': getChange(item.value,features_with_bound[index].range) < 1 && getChange(item.value,features_with_bound[index].range) > -1 }">
+                <span v-if="getChange(item.value,features_with_bound[index].range)>0">+</span>
+                {{getChange(item.value,features_with_bound[index].range)}}% 
+              </span>  
+            </span>
             <!-- <el-slider show-stops :step="computeStep(item.range)" style="width:130px;" v-model="value_list[index]" :min="item.range[0]" :max="item.range[2]"></el-slider> -->
           </div>
         </div>
@@ -296,7 +305,6 @@
             return Number(percentage.toFixed(format_)); // Convert to number after fixing to 2 decimal places
           },
           computePercentage_(value, index){
-            console.log("index",index,value)
             const range = this.features_with_bound[index].range
             const percentage = ((value - range[0]) / (range[2] - range[0])) * 100;
             let format_ = 1
@@ -383,6 +391,13 @@
               this.driver.defineSteps(steps)
               this.driver.start()
             })
+          },
+          getChange(new_val, range){
+            let diff = new_val - range[1]
+            const range_val = range[2] - range[0]
+            
+            let change = diff*100/range_val
+            return Number(change.toFixed(1))
           }
         
     },
@@ -438,6 +453,9 @@
   .highlight {
     color:deeppink;
     font-weight: 600;
+  }
+  .incremental{
+    color: gray;
   }
   .annotation{
     color:deeppink;
