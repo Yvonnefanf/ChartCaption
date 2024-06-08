@@ -23,43 +23,59 @@
   <main id="app">
     <div style="display:flex;padding: 0 20px;">
       <el-button style="position:fixed; right:0" type="warning" @click="startGuide">Show Tutorial </el-button>
-      <article style="width:25%; margin-right:20px;" class="left-panel">
-        <div id="Chain">
-          Chain
+      <article id="Chain" style="width:25%; margin-right:20px;" class="left-panel">
+        <div>
+          Chain -- {{mode}}
           <el-divider></el-divider>
           <el-timeline>
-            <el-timeline-item timestamp="Understand the Context and Goal" placement="top" color=#0bbd87>
+            <el-timeline-item timestamp="Context Comprehension" placement="top" color=#0bbd87>
+              <el-tag class="question-type-tag">Inputs</el-tag>
+              <br/>
               <span>
-                Goal: Predict the wine quality classification.
-                Context:...
+                Input explanations inform users about the input values from data instances that the AI is using to reason for the current case.
               </span> 
             </el-timeline-item>
-            <el-timeline-item v-if="mode=='featureImportance'" timestamp="Analyze Feature Values and Importances" placement="top" color="#0bbd87">
-                <span>Q:(Why) 
+
+            <el-timeline-item v-if="mode=='Feature Importance'" timestamp="Filtering key variables" placement="top" color="#0bbd87">
+               <el-tag class="question-type-tag">Why</el-tag>  
+              <span>
+                  Why explanations focus on highlighting a subset of key variables or clauses.
+                 
                   </span>
                   <!-- Note the importance scores to identify which features have the most influence on the prediction. -->
             </el-timeline-item>
-            <el-timeline-item v-if="mode=='retrieval'" timestamp="Retrieve examples" placement="top" color="#0bbd87">
+            <el-timeline-item v-if="mode=='Prediction(Retrieval)'" timestamp="Analogy" placement="top" color="#0bbd87">
               <span>
-                Q:(when)
+                <el-tag class="question-type-tag">When</el-tag>
+                <br/>
+                The user looks at instances to form a detailed understanding of similar specific cases.
                 <ul>
-                  <li>Similar</li>
-                  <li>Typical</li>
-                  <li>Boundary</li>
+                  <li>Similar instances to indicate the closest instances to the current instance for each outcome type.</li>
+                  <li>Prototypes to indicate median instances for each outcome type.</li>
+                  <li>Critique examples to indicate examples of a desired outcome that are close to the
+                    decision boundary.</li>
                 </ul>
               </span>
           </el-timeline-item>
             <!-- <el-timeline-item timestamp="Step 3" placement="top" color="#0bbd87">
               <span style="font-weight:600;" >Create an Initial Hypothesis</span>
             </el-timeline-item> -->
-            <el-timeline-item v-if="mode!='retrieval'" timestamp="Step 3" placement="top" icon="el-icon-more" type="primary">
-              <el-card>
-                <span style="font-weight:600;">What If</span>
-                <p></p>
-              </el-card>
+            <el-timeline-item v-if="mode!='Prediction(Retrieval)'" timestamp="Transfactual reasoning" placement="top" icon="el-icon-more" type="primary">
+             
+              <el-tag class="question-type-tag">What If</el-tag>
+              <br/>
+              What If explanations allow users to anticipate or simulate what the AI will do given a set of user-set input values.
+
             </el-timeline-item>
             <el-timeline-item placement="top" timestamp="Analyze the Change" color="#0bbd87">
-              <span style="font-weight:600;"> Q:Contrastive(Why/Why not) </span>
+              <el-tag class="question-type-tag">Why (not)</el-tag>
+              <br/>
+              <span>
+                Why Not explanations provide a pairwise comparison between the inferred outcome and an 
+                alternative outcome. <br/>
+                Similar to Why explanations that help users to focus on key inputs, 
+                Why Not explanations focus on salient inputs that matter for contrasting between the different outcomes.
+              </span>
             </el-timeline-item>
             <el-timeline-item placement="top" timestamp="Infer the Current Instance's Prediction" color="#0bbd87">
               <el-radio v-model="user_res" label="1">AI Prediction: Quality >=7</el-radio>
@@ -75,44 +91,39 @@
         </div>
       </article>
       <article style="flex: 1" >
-        <div style="display: flex; 
-        align-items: center; " id="InstanceSelection">
-        Dataset: <el-select style="height: 40px; margin:0 10px;" placeholder="please select" v-model="dataSet">
-          <el-option label="Red Wine Quality" value="RedWine">
-          </el-option>
-        </el-select> Instance Index:
-        <el-input style="width:100px; margin:0 20px; height:40px;" @change="fetchData" type="number" v-model="instance_index" placeholder="Input Index" aria-label="Text" ></el-input>
-        <!-- <button @click="fetchData">Load Instance Info</button> -->
-      </div>
+        <div style="text-align: center;">
+          <div style="font-size: 14px;" id="InstanceSelection">
+          Dataset: <el-select style="height: 40px; margin:0 10px;" placeholder="please select" v-model="dataSet">
+            <el-option label="Red Wine Quality" value="RedWine">
+            </el-option>
+          </el-select> Instance:
+          <el-input style="width:100px; margin:0 20px; height:40px;" @change="fetchData" type="number" v-model="instance_index" placeholder="Input Index" aria-label="Text" ></el-input>
+          <!-- <button @click="fetchData">Load Instance Info</button> -->
+        </div>
+        <div style="margin-top: 20px;" id="SettingSelection">
+          <el-radio v-model="mode" label="Prediction(Retrieval)">Prediction(Retrieval)</el-radio>
+          <el-radio v-model="mode" label="Prediction(What if)">Prediction(What if)</el-radio>
+          <el-radio v-model="mode" label="Feature Importance">Feature Importance</el-radio>
+          <el-radio v-model="mode" label="GAM">GAM</el-radio>
+        </div>
+        </div>
+       
       <span style="position:absolute;top: 50%;left: 50%;" v-if="isLoading" aria-busy="true" >Loading...</span>
     
-      <div style="text-align: center; margin-top: 20px;" id="SettingSelection">
-        <el-radio v-model="mode" label="retrieval">Prediction(Retrieval)</el-radio>
-        <el-radio v-model="mode" label="prediction">Prediction(What if)</el-radio>
-        <el-radio v-model="mode" label="featureImportance">Feature Importance</el-radio>
-        <el-radio v-model="mode" label="GAM">GAM</el-radio>
-      </div>
-      <div class="retrival-container" v-if="mode =='retrieval'" >
+      <div class="retrival-container" v-if="mode =='Prediction(Retrieval)'" >
         <el-select style="height: 40px;" placeholder="please select" v-model="cur_retrieval_type">
           <el-option label="Similar Instance" value="similar">
           </el-option>
-          <el-option label="Typicla Instance" value="typical" disabled>
+          <el-option label="Prototypes" value="typical" disabled>
           </el-option>
-          <el-option label="Boundary Instance" value="boundary" disabled>
+          <el-option label="Critique examples" value="boundary" disabled>
           </el-option>
         </el-select>
         <el-button icon="el-icon-search" type="primary" @click="searchInstance"> Search</el-button>
+        <el-button :disabled="ex_instance_0.length==0 || ex_instance_1.length==0" type="warning">Contrastive explanation</el-button>
       </div>
 
-      <div style="display:flex; justify-content: space-between;" v-if="mode =='retrieval' && features_with_bound.length && value_list.length">
-        <div class="block-container retrieval-container" id="CurrentInstance">
-          <div>Current Instance</div>
-          <div class="block" v-for="(item, index) in features_with_bound" :class="{ 'highlight': value_list[index] !== initial_values[index] }">
-            <span class="demonstration">{{item.name}}: </span>
-            <el-progress style="width:100px;" stroke-width="10" :percentage="computePercentage(item.range)" :show-text="false">{{item.range[1]}}</el-progress>
-            <!-- <el-slider show-stops :step="computeStep(item.range)" style="width:130px;" v-model="value_list[index]" :min="item.range[0]" :max="item.range[2]"></el-slider> -->
-          </div>
-        </div>
+      <div style="display:flex; justify-content: space-around;" v-if="mode =='Prediction(Retrieval)' && features_with_bound.length && value_list.length">
         <div class="block-container retrieval-container" v-if="ex_instance_0.length">
           <div>Similar case in Low Quality</div>
           <div class="block" v-for="(item, index) in ex_instance_0" :class="{ 'highlight': value_list[index] !== initial_values[index] }">
@@ -122,6 +133,15 @@
             <!-- <el-slider show-stops :step="computeStep(item.range)" style="width:130px;" v-model="value_list[index]" :min="item.range[0]" :max="item.range[2]"></el-slider> -->
           </div>
         </div>
+        <div class="block-container retrieval-container" id="CurrentInstance">
+          <div>Current Instance</div>
+          <div class="block" v-for="(item, index) in features_with_bound">
+            <span class="demonstration">{{item.name}}: </span>
+            <el-progress style="width:100px;" stroke-width="10" :percentage="computePercentage(item.range)" :show-text="false">{{item.range[1]}}</el-progress>
+            <!-- <el-slider show-stops :step="computeStep(item.range)" style="width:130px;" v-model="value_list[index]" :min="item.range[0]" :max="item.range[2]"></el-slider> -->
+          </div>
+        </div>
+
         <div class="block-container retrieval-container" v-if="ex_instance_1.length">
           <div>Similar case in High Quality</div>
           <div class="block" v-for="(item, index) in ex_instance_1" :class="{ 'highlight': value_list[index] !== initial_values[index] }">
@@ -132,7 +152,7 @@
           </div>
         </div>
       </div>
-      <div style="display:flex" v-if="mode!='retrieval' && features_with_bound.length && value_list.length ">
+      <div style="display:flex" v-if="mode!='Prediction(Retrieval)' && features_with_bound.length && value_list.length ">
         <div class="block-container" id="CurrentInstanceEditor">
           <div class="block" v-for="(item, index) in features_with_bound" :class="{ 'highlight': value_list[index] !== initial_values[index] }">
             <span class="demonstration">{{item.name}}: </span>
@@ -153,20 +173,20 @@
           </div> -->
           <el-divider></el-divider>
           <div>
-            <el-button @click="fetchData" type="primary" plain>Reset</el-button>
+            <el-button @click="fetchData">Reset</el-button>
             <!-- <el-button @click="updateAnnotation" type="primary" @click="value_list=initial_values" :disabled="arraysAreEqual">Show Result</el-button> -->
           </div>
         </div>
         <div style="position:relative">
           
-          <div v-if="org_instance_chart_url.length && mode=='prediction'" 
+          <div v-if="org_instance_chart_url.length && mode=='Prediction(What if)'" 
           style="width: 100%;text-align: center; margin-top: 200px; width: 100%;margin-left: 70px; border: 1px solid; padding: 10px;">
           <span style="position: absolute; top:226px;left:20px;"> <i class="el-icon-right"></i></span>
           <span style="font-weight: 600;">AI Prediction</span>
             <br/>
             <span style="font-size: 14px;">Quality {{predict==null?'?':(predict > 0?'>=7':"<7")}}</span>
           </div>
-          <img v-if="org_instance_chart_url.length && mode=='featureImportance'" height="300px" :src="org_instance_chart_url"/>  
+          <img v-if="org_instance_chart_url.length && mode=='Feature Importance'" height="300px" :src="org_instance_chart_url"/>  
           <img v-if="org_instance_chart_url.length && mode=='GAM'" height="300px" src="./imgs/gam.png"/> 
         </div>
         
@@ -196,7 +216,7 @@
         initial_values: [],
         predict:null,
         isLoading:false,
-        mode:'prediction',
+        mode:'Prediction(What if)',
         cur_retrieval_type:'similar',
         ex_instance_0:[],
         ex_instance_1:[],
@@ -444,6 +464,11 @@
   }
   .el-select-dropdown{
     margin-top: -15px!important;
+  }
+  .question-type-tag{
+    position: absolute;
+    right: 0;
+    top:0;
   }
 
 </style>
