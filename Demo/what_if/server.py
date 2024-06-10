@@ -3,7 +3,7 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from flask_cors import CORS, cross_origin
 import json
-from utils import org_instance_importance,get_model
+from utils import org_instance_importance,get_model,plot_gam_contributions
 import numpy as np
 import random
 import lime
@@ -139,7 +139,7 @@ def update_annotation():
     if prediction > 0:
         barColor = 'orange'
     else:
-        barColor = '#90ee90'
+        barColor = '#01796f'
     
     
     bars = ax.barh(features_with_values, org_importance, color=barColor,alpha=0.4, label='Original Importance')
@@ -190,6 +190,50 @@ def update_annotation():
     plt.close()
     return jsonify({'img_path': image_path,'features_with_bound':[],"value_list":[],"predict":int(predict[0])})
 
+@app.route('/update_gam_annotation', methods=['POST','GET'])
+@cross_origin()
+def update_gam_annotation():
+
+    global features_with_values, org_importance, features_
+    random_seed = 42
+
+    np.random.seed(random_seed)
+    random.seed(random_seed)
+    
+        
+    data = request.get_json()
+    instance_index = data.get('index')
+    new_value_list = data.get('value_list')
+    # _,features_with_values,features_values, features_, org_importance,features_with_bound = org_instance_importance(model, X_train, y_train,X,explainer, instance_index)
+    instance_index = int(instance_index)
+    modified_features=[]
+    update_values=[]
+    for i in range(len(new_value_list)):
+        print('hhhh',features_values[i],new_value_list[i],abs(float(features_values[i]) - float(new_value_list[i])))
+        if abs(float(features_values[i]) - float(new_value_list[i]))>1e-3:
+            modified_features.append(features_[i])
+            update_values.append(new_value_list[i])
+    # print(X_train.iloc[instance_index])
+    # instance = X_train.iloc[instance_index].copy() 
+    instance = X_train.iloc[instance_index].copy()
+    for i in range(len(modified_features)):
+        modified_key = modified_features[i]
+        instance[modified_key] = update_values[i]
+    print("org_importance",org_importance)
+    predict = model.predict([instance])
+    print("predict",int(predict[0]))
+    
+    modified_features_str = '_'.join(modified_features)
+    update_values_str = '_'.join(map(str, update_values))
+    
+    image_path = 'imgs/gam_newinstance_{}_{}_{}.png'.format(instance_index, modified_features_str, update_values_str)
+    _ = plot_gam_contributions(X_train,instance_index,model,instance,image_path)
+    return jsonify({'img_path': image_path,'predict':int(predict[0])})
+    
+    
+    
+    
+    
 @app.route('/instance_retrieval', methods=['POST','GET'])
 @cross_origin()
 def instance_retrieval():

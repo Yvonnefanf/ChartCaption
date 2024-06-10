@@ -132,7 +132,7 @@ def org_instance_importance(model, X_train, y_train,X,index):
 
 
 
-def plot_gam_contributions(X_train, index,model):
+def plot_gam_contributions(X_train, index,model,instance_ = None,img_path_=''):
 
     random_seed = 42
     np.random.seed(random_seed)
@@ -143,33 +143,55 @@ def plot_gam_contributions(X_train, index,model):
 
     fig, axes = plt.subplots(nrows=3, ncols=2, figsize=(8, 10))
     axes = axes.flatten()
-    instance = X_train.iloc[index]
+    
 
-    selected_features =['sulphates', 'alcohol','total sulfur dioxide', 'volatile acidity','citric acid','free sulfur dioxide']
+
+    selected_features =[ 'volatile acidity', 'citric acid','free sulfur dioxide','total sulfur dioxide','sulphates', 'alcohol']
     selected_feature_indices = [X_train.columns.get_loc(feature) for feature in selected_features]
+
+    instance = X_train.iloc[index]
     contributions = np.array([gam.partial_dependence(term=i, X=instance.values.reshape(1, -1)) for i in selected_feature_indices])
+    if img_path_ != '':
+        new_instance = instance_
+        
+        new_contributions = np.array([gam.partial_dependence(term=i, X=new_instance.values.reshape(1, -1)) for i in selected_feature_indices])
+
 
     for i, (feature, feature_idx) in enumerate(zip(selected_features, selected_feature_indices)):
         ax = axes[i]
-        XX = gam.generate_X_grid(term=i)
-        pdep, confi = gam.partial_dependence(term=i, width=0.95)
-        ax.plot(XX[:, i], pdep)
-        ax.fill_between(XX[:, i], confi[:, 0], confi[:, 1], alpha=0.1)
+        XX = gam.generate_X_grid(term=feature_idx)
+        pdep, confi = gam.partial_dependence(term=feature_idx, width=0.9)
+        
+        ax.plot(XX[:, feature_idx], pdep)
+        ax.fill_between(XX[:, feature_idx], confi[:, 0], confi[:, 1], alpha=0.1)
         
         # Highlight the instance's specific value on the shape function
-        ax.axvline(instance[i], color='#409EFF', linestyle='--')
-        ax.scatter(instance[i], contributions[i], color='#409EFF')
+        # ax.axvline(instance[i], color='#409EFF', linestyle='--')
+        # ax.scatter(instance[i], contributions[i], color='#409EFF')
+
+        # highlight
+        color = 'orange' if contributions[i][0] >= 0 else '#01796f'
+        # ax.axvline(instance[feature_idx], color=color, linestyle='--')
+        ax.axhline(y=contributions[i][0], color=color, linestyle='--',linewidth=1)
+        ax.scatter(instance[feature_idx], contributions[i][0], color=color)
+        ax.axhline(y=0, color='grey', linestyle='--', linewidth=0.5)
         
-        ax.set_title(f'{X_train.columns[i]}',fontsize=16)
+        if img_path_ != '' and new_contributions[i][0] != contributions[i][0]:
+            # ax.axvline(new_instance[feature_idx], color='deeppink', linestyle='--')
+            ax.axhline(y=new_contributions[i][0], color='deeppink', linestyle='--',linewidth=1)
+            ax.scatter(new_instance[feature_idx], new_contributions[i][0], color='deeppink')
+        
+        ax.set_title(f'{feature}',fontsize=18)
         # ax.set_xlabel(X_train.columns[i])
         # ax.set_ylabel('Partial Dependence')
         # Save the plot as an image file
-    image_path = 'imgs/gam_{}.png'.format(index)
+    if img_path_ == '':
+        image_path = 'imgs/gam_{}.png'.format(index)
+    else:
+        image_path = img_path_
     plt.tight_layout()
     plt.savefig(image_path,transparent=True)
     plt.close()
-    
-   
     return image_path
     
     

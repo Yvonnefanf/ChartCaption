@@ -231,7 +231,7 @@
             <img v-if="org_instance_chart_url.length && mode=='Feature Importance'"
               style="height: 264px; margin-top:20px;" :src="org_instance_chart_url" />
             <img v-if="gam_path.length && mode=='GAM' && !isLoading" height="300px"
-              style="margin-top: 30px; width: 380px;" :src="gam_path" />
+              style="margin-top: 30px; width: 420px;" :src="gam_path" />
             <div v-if="org_instance_chart_url.length && mode!='Prediction(Retrieval)'"
               style="width: 100%;text-align: center; margin-top: 100px; width: 100%;margin-left: 70px; border: 1px solid; height:80px; padding: 10px; position:relative;">
               <span style="position:absolute;top:30px;left:-40px;"> <i class="el-icon-right"></i></span>
@@ -240,8 +240,14 @@
               <span style="font-size: 14px;">Quality {{predict==null?'?':(predict > 0?'>=7':"<7")}}
               </span>
             </div>
+            
           </div>
 
+        </div>
+        <div class="explanation-container" v-if="mode=='Prediction(What if)' && !arraysAreEqual">
+          Given that both increasing and decreasing A result in positive predictions, the current instance likely 
+          resides in a region of the feature space where the model predicts high quality regardless of small perturbations in A. 
+          This suggests: Robust Prediction: The prediction of high quality is robust to changes in A. Confidence in Prediction: The model’s confidence in predicting high quality for the current instance is likely high.
         </div>
       </article>
 
@@ -310,6 +316,35 @@
       },
       async updateAnnotation() {
         this.isLoading = true
+        if(this.mode=='GAM'){
+          try {
+            const headers = {
+              'Content-Type': 'application/json'
+            };
+            const response = await fetch(`${window.location.href}update_gam_annotation`, {
+              method: 'POST',
+              body: JSON.stringify(
+                {
+                  'index': this.instance_index,
+                  'value_list': this.value_list,
+                  'org_values': this.initial_values
+                }
+              ),
+              headers: headers,
+              mode: 'cors'
+            });
+            const res = await response.json();
+            this.isLoading = false
+            setTimeout(() => {
+              this.gam_path = res.img_path
+            })
+            this.predict = res.predict
+  
+          } catch (error) {
+            console.error('Error fetching data:', error);
+          }
+          return
+        }
         this.org_instance_chart_url = ''
         console.log("this.value_list", this.value_list)
         try {
@@ -561,5 +596,6 @@
     border-radius: 20px;
     width: 100%;
     padding: 10px;
+    margin-top: 10px;
   }
 </style>
