@@ -23,10 +23,10 @@
   <main id="app">
     <div style="display:flex;padding: 0 20px;">
       <el-button style="position:fixed; right:0" type="warning" @click="startGuide">Show Tutorial </el-button>
-      <article id="Chain" style="width:25%; margin-right:20px;" class="left-panel">
+      <article id="Chain" style="width:28%; margin-right:20px;" class="left-panel">
         <div>
-          Chain -- {{mode}}
-          <el-divider></el-divider>
+          <h5>Chain <el-tag type="success">{{mode}}</el-tag></h5>
+   
           <el-timeline>
             <el-timeline-item timestamp="Context Comprehension" placement="top" color=#0bbd87>
               <el-tag class="question-type-tag">Inputs</el-tag>
@@ -60,11 +60,27 @@
             <!-- <el-timeline-item timestamp="Step 3" placement="top" color="#0bbd87">
               <span style="font-weight:600;" >Create an Initial Hypothesis</span>
             </el-timeline-item> -->
+            <el-timeline-item v-if="mode=='GAM'" timestamp="Transfactual reasoning" placement="top" icon="el-icon-more" type="primary">
+             
+              <el-tag class="question-type-tag">What Output</el-tag>
+              Q: Given x what is y ?
+
+            </el-timeline-item>
             <el-timeline-item v-if="mode!='Prediction(Retrieval)'" timestamp="Transfactual reasoning" placement="top" icon="el-icon-more" type="primary">
              
               <el-tag class="question-type-tag">What If</el-tag>
               <br/>
               What If explanations allow users to anticipate or simulate what the AI will do given a set of user-set input values.
+
+            </el-timeline-item>
+            <el-timeline-item v-if="mode=='GAM'" timestamp="Transfactual reasoning" placement="top" icon="el-icon-more" type="primary">
+              
+              <el-tag class="question-type-tag">How to</el-tag>
+              <br/>
+              Q: Given y what is x ’s?
+              Multiple x values are
+              possible when the relationship between y
+              and x is nonlinear.
 
             </el-timeline-item>
             <el-timeline-item placement="top" timestamp="Analyze the Change" color="#0bbd87">
@@ -82,11 +98,13 @@
               <el-radio v-model="user_res" label="0">AI Prediction: Quality < 7</el-radio>
             </el-timeline-item>
             <el-timeline-item placement="top" timestamp="Validate the Prediction" color="#0bbd87">
-              <el-button type="primary" :disabled="user_res==-1">Show AI Prediction</el-button>
+              <el-button type="primary" :disabled="user_res==-1" @click="showValidation = true">Show AI Prediction</el-button>
+              <br/>
+              <span v-if="showValidation">AI Prediction : {{}}</span>
             </el-timeline-item>
-            <el-timeline-item placement="top" timestamp="Validate the Prediction" color="#0bbd87">
+            <!-- <el-timeline-item placement="top" timestamp="Validate the Prediction" color="#0bbd87">
               <el-button type="primary" :disabled="user_res==-1">Next Instance</el-button>
-            </el-timeline-item>
+            </el-timeline-item> -->
           </el-timeline>
         </div>
       </article>
@@ -196,7 +214,7 @@
             <span style="font-size: 14px;">Quality {{predict==null?'?':(predict > 0?'>=7':"<7")}}</span>
           </div>
           <img v-if="org_instance_chart_url.length && mode=='Feature Importance'" height="300px" :src="org_instance_chart_url"/>  
-          <img v-if="org_instance_chart_url.length && mode=='GAM'" height="300px" src="./imgs/gam.png"/> 
+          <img v-if="org_instance_chart_url.length && mode=='GAM'" height="300px" style="margin-top: 30px;" src="./imgs/gam.png"/> 
         </div>
         
       </div>
@@ -229,7 +247,8 @@
         cur_retrieval_type:'similar',
         ex_instance_0:[],
         ex_instance_1:[],
-        user_res:-1
+        user_res:-1,
+        showValidation:false
       }
     },
     methods: {
@@ -487,6 +506,10 @@
     position: absolute;
     right: 0;
     top:0;
+  }
+  .el-timeline-item__content {
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e5e7ed;
   }
 
 </style>
