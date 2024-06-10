@@ -51,6 +51,8 @@ def org_instance_importance(model, X_train, y_train,X,index):
     np.random.seed(random_seed)
     random.seed(random_seed)
     
+    FEATURES=['sulphates', 'alcohol','total sulfur dioxide', 'volatile acidity','citric acid','free sulfur dioxide']
+    
     index = int(index)
     print("index",index)
     
@@ -65,7 +67,6 @@ def org_instance_importance(model, X_train, y_train,X,index):
     # Extract feature importance (absolute values)
     exp_dict = dict(exp.as_list())
     features = list(exp_dict.keys())
-    importance = [abs(val) for val in exp_dict.values()]
     org_importance = [abs(val) for val in exp_dict.values()]
     # Convert feature values to strings
     original_importance = {feature: abs(val) for feature, val in exp_dict.items()}
@@ -77,23 +78,28 @@ def org_instance_importance(model, X_train, y_train,X,index):
     features_with_values = []
     features_ = []
     features_values = []
-    max_importance = max(importance)
-    for feature in features:
+    
+    org_importance_ = []
+    
+    for i,feature in enumerate(features):
         match = re.findall(r'([a-zA-Z]+)', feature)
         if match:
             feature_name = ' '.join(match)  # Combine all matches with a space
-            feature_value = instance_str[feature_name]
-            features_values.append(feature_value)
-            features_with_values.append(f"{feature_name}={feature_value}")
-            features_.append(f"{feature_name}")
+            if feature_name in FEATURES:
+                
+                feature_value = instance_str[feature_name]
+                features_values.append(feature_value)
+                features_with_values.append(f"{feature_name}={feature_value}")
+                features_.append(f"{feature_name}")
+                org_importance_.append(org_importance[i])
         else:
             features_with_values.append(f"{feature}={instance_str[feature]}")
     # Step 4: Plot Feature Importance with values
-    fig, ax1= plt.subplots(figsize=(5, 5))
+    fig, ax1= plt.subplots(figsize=(8, 5))
     ax1.set_yticklabels([])
     ax1.yaxis.set_ticks([])
     ax1.axvline(x=0, color='black',linewidth=0.6)
-    bars = plt.barh(features_with_values, org_importance, color='#20A6FF')
+    bars = plt.barh(features_with_values, org_importance_, color='#20A6FF')
     plt.xlabel('Feature Importance')
     # plt.title('LIME Feature Importance for Instance {}'.format(index))
     plt.gca().invert_yaxis()
@@ -120,11 +126,51 @@ def org_instance_importance(model, X_train, y_train,X,index):
     image_path = 'imgs/lime_feature_importance_instance_{}.png'.format(index)
     plt.savefig(image_path,transparent=True)
     plt.close()
-    return image_path, features_with_values,features_values, features_, importance,features_with_bound
+    gam_path = plot_gam_contributions(X_train, index,model)
+    
+    return image_path, features_with_values,features_values, features_, org_importance_,features_with_bound,gam_path
 
 
 
+def plot_gam_contributions(X_train, index,model):
 
+    random_seed = 42
+    np.random.seed(random_seed)
+    random.seed(random_seed)
+    
+    prediction = model.predict(X_train)
+    gam = LinearGAM(s(0) + s(1) + s(2) + s(3) + s(4) + s(5) + s(6) + s(7) + s(8) + s(9) + s(10)).fit(X_train, prediction)
+
+    fig, axes = plt.subplots(nrows=3, ncols=2, figsize=(8, 10))
+    axes = axes.flatten()
+    instance = X_train.iloc[index]
+
+    selected_features =['sulphates', 'alcohol','total sulfur dioxide', 'volatile acidity','citric acid','free sulfur dioxide']
+    selected_feature_indices = [X_train.columns.get_loc(feature) for feature in selected_features]
+    contributions = np.array([gam.partial_dependence(term=i, X=instance.values.reshape(1, -1)) for i in selected_feature_indices])
+
+    for i, (feature, feature_idx) in enumerate(zip(selected_features, selected_feature_indices)):
+        ax = axes[i]
+        XX = gam.generate_X_grid(term=i)
+        pdep, confi = gam.partial_dependence(term=i, width=0.95)
+        ax.plot(XX[:, i], pdep)
+        ax.fill_between(XX[:, i], confi[:, 0], confi[:, 1], alpha=0.1)
+        
+        # Highlight the instance's specific value on the shape function
+        ax.axvline(instance[i], color='#409EFF', linestyle='--')
+        ax.scatter(instance[i], contributions[i], color='#409EFF')
+        
+        ax.set_title(f'{X_train.columns[i]}',fontsize=16)
+        # ax.set_xlabel(X_train.columns[i])
+        # ax.set_ylabel('Partial Dependence')
+        # Save the plot as an image file
+    image_path = 'imgs/gam_{}.png'.format(index)
+    plt.tight_layout()
+    plt.savefig(image_path,transparent=True)
+    plt.close()
+    
+   
+    return image_path
     
     
 

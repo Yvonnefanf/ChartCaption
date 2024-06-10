@@ -18,6 +18,9 @@ np.random.seed(random_seed)
 random.seed(random_seed)
 
 model, X_train, y_train,X,y = get_model()
+
+
+
        #Step 3: Apply LIME to Explain a Single Instance
 features_with_values = []
 org_importance = []
@@ -48,14 +51,16 @@ def caption_gen():
     index = data.get('index')
     print("index111",index) 
 
-    img_path,features_with_values,features_values, features_, org_importance,features_with_bound = org_instance_importance(model, X_train, y_train,X, index)
+    img_path,features_with_values,features_values, features_, org_importance,features_with_bound,gam_path = org_instance_importance(model, X_train, y_train,X, index)
    
     print("features_values",features_values)
-    return jsonify({'img_path': img_path,'features_with_bound':features_with_bound,"value_list":features_values})
+    return jsonify({'img_path': img_path,'features_with_bound':features_with_bound,"value_list":features_values,'gam_path':gam_path})
   
 @app.route('/update_annotation', methods=['POST','GET'])
 @cross_origin()
 def update_annotation():
+    FEATURES=['sulphates', 'alcohol','total sulfur dioxide', 'volatile acidity','citric acid','free sulfur dioxide']
+    
     global features_with_values, org_importance, features_
     random_seed = 42
 
@@ -96,22 +101,25 @@ def update_annotation():
     # Extract feature importance (absolute values)
     exp_dict = dict(exp.as_list())
     features = list(exp_dict.keys())
-    new_importance = [abs(val) for val in exp_dict.values()]
+    new_importance_ = [abs(val) for val in exp_dict.values()]
+    
   
-    max_importance = max(new_importance)
     instance_str = instance.apply(lambda x: str(x))
 
     # Extract feature names and values using regular expressions
     modified_features_with_values = []
     modified_features = []
-    for feature in features:
+    new_importance = []
+    for i,feature in enumerate(features):
         match = re.findall(r'([a-zA-Z]+)', feature)
         # print("match",feature, match)
         if match:
             feature_name = ' '.join(match)  # Combine all matches with a space
-            feature_value = instance_str[feature_name]
-            modified_features_with_values.append(f"{feature_name}={feature_value}")
-            modified_features.append(f"{feature_name}")
+            if feature_name in FEATURES:
+                feature_value = instance_str[feature_name]
+                modified_features_with_values.append(f"{feature_name}={feature_value}")
+                modified_features.append(f"{feature_name}")
+                new_importance.append(new_importance_[i])
         else:
             modified_features_with_values.append(f"{feature}={instance_str[feature]}")
     random_seed = 42
@@ -120,12 +128,21 @@ def update_annotation():
 
         # Create a mapping from modified feature names to their new importance
     new_importance_dict = dict(zip(modified_features, new_importance))
+    print("new_importance_dict",new_importance_dict,feature,org_importance)
 
     # Plot Feature Importance with values
-    fig, ax = plt.subplots(figsize=(5, 5))
+    fig, ax = plt.subplots(figsize=(8, 5))
     ax.set_yticklabels([])
     ax.yaxis.set_ticks([])
-    bars = ax.barh(features_with_values, org_importance, color='skyblue',alpha=0.4, label='Original Importance')
+    prediction = int(predict[0])
+    print("prediction",prediction)
+    if prediction > 0:
+        barColor = 'orange'
+    else:
+        barColor = '#90ee90'
+    
+    
+    bars = ax.barh(features_with_values, org_importance, color=barColor,alpha=0.4, label='Original Importance')
 
     # Add a black vertical line at x=0
     plt.axvline(x=0, color='black', linewidth=1)
