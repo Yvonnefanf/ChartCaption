@@ -34,6 +34,11 @@ def index():
     # return render_template("SilasIndex.html")
     return send_from_directory(app.static_folder, 'index.html')
 
+@app.route("/chain", methods=["GET", "POST"])
+def chain():
+    # return render_template("SilasIndex.html")
+    return send_from_directory(app.static_folder, 'index_chain.html')
+
 @app.route("/feature_importance", methods=["GET", "POST"])
 def feature_importance():
     # return render_template("SilasIndex.html")

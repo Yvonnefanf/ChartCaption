@@ -141,7 +141,7 @@ def plot_gam_contributions(X_train, index,model,instance_ = None,img_path_=''):
     prediction = model.predict(X_train)
     gam = LinearGAM(s(0) + s(1) + s(2) + s(3) + s(4) + s(5) + s(6) + s(7) + s(8) + s(9) + s(10)).fit(X_train, prediction)
 
-    fig, axes = plt.subplots(nrows=3, ncols=2, figsize=(8, 10))
+    fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(12, 8))
     axes = axes.flatten()
     
 

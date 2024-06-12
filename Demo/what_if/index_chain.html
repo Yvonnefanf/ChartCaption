@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+  <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+  <!-- <meta name="color-scheme" content="light dark" /> -->
+  <!-- <link rel="stylesheet" href="css/pico.min.css"> -->
+  <script src="https://cdn.bootcss.com/vue/2.5.16/vue.min.js"></script>
+  <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+  <title></title>
+  <script src="request.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/driver.js/dist/driver.min.js"></script>
+  <link rel="stylesheet" href="thirdParty/driver.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/driver.js/dist/driver.min.js"></script>
+
+</head>
+
+<body>
+  <main id="app">
+    <div style="display:flex;padding: 0 20px;">
+      <el-button style="position:fixed; right:0" type="warning" @click="startGuide">Show Tutorial </el-button>
+      <article id="Chain" style="width:28%; margin-right:20px;" class="left-panel">
+        <div>
+          <h5>Chain <el-tag type="success">{{mode}}</el-tag></h5>
+
+          <el-timeline>
+            <el-timeline-item timestamp="Context Comprehension" placement="top" color=#0bbd87>
+              <el-tag class="question-type-tag">Inputs</el-tag>
+              <br />
+              <span>
+                Input explanations inform users about the input values from data instances that the AI is using to
+                reason for the current case.
+              </span>
+            </el-timeline-item>
+
+            <el-timeline-item v-if="mode=='Feature Importance'" timestamp="Filtering key variables" placement="top"
+              color="#0bbd87">
+              <el-tag class="question-type-tag">Why</el-tag>
+              <span>
+                Why explanations focus on highlighting a subset of key variables or clauses.
+
+              </span>
+              <!-- Note the importance scores to identify which features have the most influence on the prediction. -->
+            </el-timeline-item>
+            <el-timeline-item v-if="mode=='Prediction(Retrieval)'" timestamp="Analogy" placement="top" color="#0bbd87">
+              <span>
+                <el-tag class="question-type-tag">When</el-tag>
+                <br />
+                The user looks at instances to form a detailed understanding of similar specific cases.
+                <ul>
+                  <li>Similar instances to indicate the closest instances to the current instance for each outcome type.
+                  </li>
+                  <li>Prototypes to indicate median instances for each outcome type.</li>
+                  <li>Critique examples to indicate examples of a desired outcome that are close to the
+                    decision boundary.</li>
+                </ul>
+              </span>
+            </el-timeline-item>
+            <!-- <el-timeline-item timestamp="Step 3" placement="top" color="#0bbd87">
+              <span style="font-weight:600;" >Create an Initial Hypothesis</span>
+            </el-timeline-item> -->
+            <el-timeline-item v-if="mode=='GAM'" timestamp="Feature Influence" placement="top" icon="el-icon-more"
+              type="primary">
+
+              <el-tag class="question-type-tag">Why</el-tag>
+              <br />
+              Q: Based on GAM, Why preidiction ***?
+              <br />
+              A: The *** prediction of instance is primarily due to the following feature contributions: 1,2,3
+
+            </el-timeline-item>
+            <el-timeline-item v-if="mode!='Prediction(Retrieval)'" timestamp="Transfactual reasoning" placement="top"
+              icon="el-icon-more" type="primary">
+
+              <el-tag class="question-type-tag">What If</el-tag>
+              <br />
+              What If explanations allow users to anticipate or simulate what the AI will do given a set of user-set
+              input values.
+
+            </el-timeline-item>
+
+            <el-timeline-item placement="top" timestamp="Analyze the Change" color="#0bbd87">
+              <el-tag class="question-type-tag">Why (not)</el-tag>
+              <br />
+              <span>
+                Why Not explanations provide a pairwise comparison between the inferred outcome and an
+                alternative outcome. <br />
+                <!-- Similar to Why explanations that help users to focus on key inputs,
+                Why Not explanations focus on salient inputs that matter for contrasting between the different outcomes. -->
+              </span>
+            </el-timeline-item>
+            <el-timeline-item v-if="mode=='GAM'" timestamp="Transfactual reasoning" placement="top" icon="el-icon-more"
+              type="primary">
+
+              <el-tag class="question-type-tag">How to</el-tag>
+              <br />
+              Q: Given y what is x ’s?
+              Multiple x values are
+              possible when the relationship between y
+              and x is nonlinear.
+
+            </el-timeline-item>
+            <el-timeline-item placement="top" timestamp="Infer the Current Instance's Prediction" color="#0bbd87">
+              <el-radio v-model="user_res" label="1">AI Prediction: Quality >=7</el-radio>
+              <el-radio v-model="user_res" label="0">AI Prediction: Quality < 7</el-radio>
+            </el-timeline-item>
+            <el-timeline-item placement="top" timestamp="Validate the Prediction" color="#0bbd87">
+              <el-button type="primary" :disabled="user_res==-1" @click="showValidation = true">Show AI
+                Prediction</el-button>
+              <br />
+              <span v-if="showValidation">AI Prediction : {{}}</span>
+            </el-timeline-item>
+            <!-- <el-timeline-item placement="top" timestamp="Validate the Prediction" color="#0bbd87">
+              <el-button type="primary" :disabled="user_res==-1">Next Instance</el-button>
+            </el-timeline-item> -->
+          </el-timeline>
+        </div>
+      </article>
+      <article style="flex: 1">
+        <div style="text-align: center;">
+          <div style="font-size: 14px;" id="InstanceSelection">
+            Dataset: <el-select style="height: 40px; margin:0 10px;" placeholder="please select" v-model="dataSet">
+              <el-option label="Red Wine Quality" value="RedWine">
+              </el-option>
+            </el-select> Instance:
+            <el-input style="width:100px; margin:0 20px; height:40px;" @change="fetchData" type="number"
+              v-model="instance_index" placeholder="Input Index" aria-label="Text"></el-input>
+            <!-- <button @click="fetchData">Load Instance Info</button> -->
+          </div>
+          <div style="margin-top: 20px;" id="SettingSelection">
+            <el-radio v-model="mode" label="Prediction(Retrieval)">Prediction(Retrieval)</el-radio>
+            <el-radio v-model="mode" label="Prediction(What if)">Prediction(What if)</el-radio>
+            <el-radio v-model="mode" label="Feature Importance">Feature Importance</el-radio>
+            <el-radio v-model="mode" label="GAM">GAM</el-radio>
+          </div>
+        </div>
+
+        <span style="position:absolute;top: 50%;left: 50%;" v-if="isLoading" aria-busy="true">Loading...</span>
+
+        <div class="retrival-container" v-if="mode =='Prediction(Retrieval)'">
+          <el-select style="height: 40px;" placeholder="please select" v-model="cur_retrieval_type">
+            <el-option label="Similar Instance" value="similar">
+            </el-option>
+            <el-option label="Prototypes" value="typical" disabled>
+            </el-option>
+            <el-option label="Critique examples" value="boundary" disabled>
+            </el-option>
+          </el-select>
+          <el-button icon="el-icon-search" type="primary" @click="searchInstance"> Search</el-button>
+          <!-- <el-button :disabled="ex_instance_0.length==0 || ex_instance_1.length==0" type="warning">Contrastive explanation</el-button> -->
+        </div>
+
+        <div v-if="mode =='Prediction(Retrieval)' && features_with_bound.length && value_list.length">
+          <div style="display:flex; justify-content: space-around;">
+            <div class="block-container retrieval-container" v-if="ex_instance_0.length">
+              <div>Similar case in Low Quality</div>
+              <div class="block" v-for="(item, index) in ex_instance_0"
+                :class="{ 'highlight': value_list[index] !== initial_values[index] }">
+                <span class="demonstration">{{item.name}}: </span>
+
+                <el-progress style="width:110px;" stroke-width="10" :percentage="computePercentage_(item.value, index)"
+                  :show-text="false">{{item.value}}</el-progress>
+                <span v-if="features_with_bound[index].range[1] !== item.value" style="right:110px" class="annotation">
+                  <span
+                    :class="{ 'incremental': getChange(item.value,features_with_bound[index].range) < 3 && getChange(item.value,features_with_bound[index].range) > -1 }">
+                    <span v-if="getChange(item.value,features_with_bound[index].range)>0">+</span>
+                    {{getChange(item.value,features_with_bound[index].range)}}%
+                  </span>
+                  <!-- <el-slider show-stops :step="computeStep(item.range)" style="width:130px;" v-model="value_list[index]" :min="item.range[0]" :max="item.range[2]"></el-slider> -->
+              </div>
+            </div>
+            <div class="block-container retrieval-container" id="CurrentInstance">
+              <div>Current Instance</div>
+              <div class="block" v-for="(item, index) in features_with_bound">
+                <span class="demonstration">{{item.name}}: </span>
+                <el-progress style="width:100px;" stroke-width="10" :percentage="computePercentage(item.range)"
+                  :show-text="false">{{item.range[1]}}</el-progress>
+                <!-- <el-slider show-stops :step="computeStep(item.range)" style="width:130px;" v-model="value_list[index]" :min="item.range[0]" :max="item.range[2]"></el-slider> -->
+              </div>
+            </div>
+
+            <div class="block-container retrieval-container" v-if="ex_instance_1.length">
+              <div>Similar case in High Quality</div>
+              <div class="block" v-for="(item, index) in ex_instance_1"
+                :class="{ 'highlight': value_list[index] !== initial_values[index] }">
+                <span class="demonstration">{{item.name}}: </span>
+                <el-progress style="width:100px;" stroke-width="10" :percentage="computePercentage_(item.value, index)"
+                  :show-text="false">{{item.value}}</el-progress>
+                <span v-if="features_with_bound[index].range[1] != item.value" style="right:100px" class="annotation">
+                  <span
+                    :class="{ 'incremental': getChange(item.value,features_with_bound[index].range) < 1 && getChange(item.value,features_with_bound[index].range) > -1 }">
+                    <span v-if="getChange(item.value,features_with_bound[index].range)>0">+</span>
+                    {{getChange(item.value,features_with_bound[index].range)}}%
+                  </span>
+                </span>
+                <!-- <el-slider show-stops :step="computeStep(item.range)" style="width:130px;" v-model="value_list[index]" :min="item.range[0]" :max="item.range[2]"></el-slider> -->
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:30px;">
+            <div class="explanation-container" v-if="ex_instance_0.length">
+              Current Instance is more similar to the similar case in ** Quality, which have the similar features: *** ,
+              and contrastively it has more
+              different features compared to the similar case in high quality, such as ***.
+              So, based on these contrasts, this example has a higher probability to be predicted as ** Quality.
+            </div>
+          </div>
+        </div>
+        <div style="display:flex"
+          v-if="mode!='Prediction(Retrieval)' && features_with_bound.length && value_list.length ">
+          <div class="block-container" id="CurrentInstanceEditor">
+            <div class="block" v-for="(item, index) in features_with_bound"
+              :class="{ 'highlight': value_list[index] !== initial_values[index] }">
+              <span class="demonstration">{{item.name}}: </span>
+              <span v-if="value_list[index] != initial_values[index]"
+                class="annotation">{{initial_values[index]}}->{{value_list[index]}} </span>
+              <el-slider @change="updateAnnotation" show-stops :step="computeStep(item.range)" style="width:130px;"
+                v-model="value_list[index]" :min="item.range[0]" :max="item.range[2]"></el-slider>
+            </div>
+            <!-- <div v-for="item in features_with_bound">
+            <label>
+              {{item.name}}
+              <input type="range" :value="item.range[1]" :min="item.range[0]" :max="item.range[2]" />
+            </label>
+          </div> -->
+
+            <div>
+              <el-button @click="fetchData">Reset</el-button>
+              <!-- <el-button @click="updateAnnotation" type="primary" @click="value_list=initial_values" :disabled="arraysAreEqual">Show Result</el-button> -->
+            </div>
+          </div>
+          <div style="display:flex;">
+            <img v-if="org_instance_chart_url.length && mode=='Feature Importance'"
+              style="height: 264px; margin-top:20px;" :src="org_instance_chart_url" />
+            <img v-if="gam_path.length && mode=='GAM' && !isLoading" height="300px"
+              style="margin-top: 30px; width: 420px;" :src="gam_path" />
+            <div v-if="org_instance_chart_url.length && mode!='Prediction(Retrieval)'"
+              style="width: 100%;text-align: center; margin-top: 100px; width: 100%;margin-left: 70px; border: 1px solid; height:80px; padding: 10px; position:relative;">
+              <span style="position:absolute;top:30px;left:-40px;"> <i class="el-icon-right"></i></span>
+              <span style="font-weight: 600;">AI Prediction</span>
+              <br />
+              <span style="font-size: 14px;">Quality {{predict==null?'?':(predict > 0?'>=7':"<7")}} </span>
+            </div>
+
+          </div>
+
+        </div>
+        <div class="explanation-container" v-if="mode=='Prediction(What if)' && !arraysAreEqual">
+          Given that both increasing and decreasing A result in positive predictions, the current instance likely
+          resides in a region of the feature space where the model predicts high quality regardless of small
+          perturbations in A.
+          This suggests: Robust Prediction: The prediction of high quality is robust to changes in A. Confidence in
+          Prediction: The model’s confidence in predicting high quality for the current instance is likely high.
+        </div>
+      </article>
+
+    </div>
+
+
+
+  </main>
+</body>
+
+</html>
+<script>
+  window.vueApp = new Vue({
+    el: '#app',
+    data() {
+      return {
+        dataSet: 'RedWine',
+        org_instance_chart_url: '',
+        instance_index: 17,
+        current_feature: '',
+        feature_value: null,
+        features_with_bound: [],
+        value_list: [],
+        initial_values: [],
+        predict: null,
+        isLoading: false,
+        mode: 'Prediction(What if)',
+        cur_retrieval_type: 'similar',
+        ex_instance_0: [],
+        ex_instance_1: [],
+        user_res: -1,
+        showValidation: false,
+        gam_path: ''
+      }
+    },
+    methods: {
+      async fetchData() {
+        this.ex_instance_0 = []
+        this.ex_instance_1 = []
+        this.predict = null
+        this.isLoading = true
+        try {
+          const headers = {
+            'Content-Type': 'application/json'
+          };
+          const response = await fetch(`http://137.132.92.201:3333/get_org_instance_chart`, {
+            method: 'POST',
+            body: JSON.stringify({ 'index': this.instance_index }),
+            headers: headers,
+            mode: 'cors'
+          });
+          const res = await response.json();
+          console.log("this.value_list", res.value_list)
+          this.value_list = res.value_list.map(value => parseFloat(value)); // Ensure values are numbers
+          console.log("this.value_list222", this.value_list)
+          this.initial_values = [...this.value_list]; // Store initial values
+          this.features_with_bound = res.features_with_bound;
+          this.org_instance_chart_url = res.img_path
+          this.gam_path = res.gam_path
+          this.isLoading = false
+
+        } catch (error) {
+          console.error('Error fetching data:', error);
+          this.isLoading = false
+        }
+      },
+      async updateAnnotation() {
+        this.isLoading = true
+        if (this.mode == 'GAM') {
+          try {
+            const headers = {
+              'Content-Type': 'application/json'
+            };
+            const response = await fetch(`http://137.132.92.201:3333/update_gam_annotation`, {
+              method: 'POST',
+              body: JSON.stringify(
+                {
+                  'index': this.instance_index,
+                  'value_list': this.value_list,
+                  'org_values': this.initial_values
+                }
+              ),
+              headers: headers,
+              mode: 'cors'
+            });
+            const res = await response.json();
+            this.isLoading = false
+            setTimeout(() => {
+              this.gam_path = res.img_path
+            })
+            this.predict = res.predict
+
+          } catch (error) {
+            console.error('Error fetching data:', error);
+          }
+          return
+        }
+        this.org_instance_chart_url = ''
+        console.log("this.value_list", this.value_list)
+        try {
+          const headers = {
+            'Content-Type': 'application/json'
+          };
+          const response = await fetch(`http://137.132.92.201:3333/update_annotation`, {
+            method: 'POST',
+            body: JSON.stringify(
+              {
+                'index': this.instance_index,
+                'value_list': this.value_list,
+                'org_values': this.initial_values
+              }
+            ),
+            headers: headers,
+            mode: 'cors'
+          });
+          const res = await response.json();
+          this.isLoading = false
+          setTimeout(() => {
+            this.org_instance_chart_url = res.img_path
+          })
+          this.predict = res.predict
+
+        } catch (error) {
+          console.error('Error fetching data:', error);
+        }
+      },
+      computeStep(range) {
+        const step = (range[2] - range[0]) / 4;
+        let format_ = 3
+        if (step < 0.001) {
+          format_ = 5
+        }
+        return Number(step.toFixed(format_)); // Convert to number after fixing to 2 decimal places
+      },
+      computePercentage(range) {
+        const percentage = ((range[1] - range[0]) / (range[2] - range[0])) * 100;
+        let format_ = 1
+        return Number(percentage.toFixed(format_)); // Convert to number after fixing to 2 decimal places
+      },
+      computePercentage_(value, index) {
+        const range = this.features_with_bound[index].range
+        const percentage = ((value - range[0]) / (range[2] - range[0])) * 100;
+        let format_ = 1
+        return Number(percentage.toFixed(format_));
+      },
+      async searchInstance() {
+        this.isLoading = true
+        try {
+          const headers = {
+            'Content-Type': 'application/json'
+          };
+          const response = await fetch(`http://137.132.92.201:3333/instance_retrieval`, {
+            method: 'POST',
+            body: JSON.stringify({ 'index': this.instance_index, 'type': this.cur_retrieval_type }),
+            headers: headers,
+            mode: 'cors'
+          });
+          const res = await response.json();
+          this.features_with_bound.forEach(feature => {
+            const name = feature.name;
+            if (res.instance_0.hasOwnProperty(name)) {
+              this.ex_instance_0.push({ name: name, value: res.instance_0[name] });
+            }
+            if (res.instance_1.hasOwnProperty(name)) {
+              this.ex_instance_1.push({ name: name, value: res.instance_1[name] });
+            }
+          });
+          console.log("ex_instance_0", this.ex_instance_0, this.ex_instance_1)
+
+          this.isLoading = false
+        } catch (error) {
+          console.error('Error fetching data:', error);
+          this.isLoading = false
+        }
+      },
+      startGuide() {
+        this.$nextTick(() => {
+          this.driver = new Driver();
+          const steps = [
+            {
+              element: '#Chain',
+              popover: {
+                title: 'Chain of mental model',
+                description: '***',
+                position: 'right'
+              },
+            },
+            {
+              element: '#InstanceSelection',
+              popover: {
+                title: 'Instance Selection',
+                description: '***',
+                position: 'bottom'
+              },
+            },
+            {
+              element: '#SettingSelection',
+              popover: {
+                title: 'Setting Selection',
+                description: 'Choose from various levels and types of information.',
+                position: 'bottom'
+              },
+            },
+            {
+              element: '#CurrentInstance',
+              popover: {
+                title: 'Current Instance Info',
+                description: `Displays the feature name, corresponding range, and current value of the current instance.`,
+                position: 'right'
+              },
+            },
+            {
+              element: '#CurrentInstanceEditor',
+              popover: {
+                title: 'Current Instance Editor',
+                description: `Displays the feature name, corresponding range, and current value of the current instance. You can adjust these to get the output for a new instance.`,
+                position: 'right'
+              },
+            }
+
+
+
+          ]
+          this.driver.defineSteps(steps)
+          this.driver.start()
+        })
+      },
+      getChange(new_val, range) {
+        let diff = new_val - range[1]
+        const range_val = range[2] - range[0]
+
+        let change = diff * 100 / range_val
+        return Number(change.toFixed(1))
+      }
+
+    },
+    computed: {
+      arraysAreEqual() {
+        return JSON.stringify(this.initial_values) === JSON.stringify(this.value_list);
+      }
+    },
+
+    created() {
+
+    },
+    mounted() {
+      this.fetchData()
+    }
+  })
+</script>
+<style>
+  body {
+    height: calc(100vh);
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .left-panel {
+    height: calc(100vh - 40px);
+    overflow: auto;
+  }
+
+  .block-container {
+    margin-top: 34px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    /* Right-align the blocks */
+    margin-right: 10px;
+  }
+
+  .retrieval-container {
+    margin-top: 10px;
+    margin-right: 40px;
+  }
+
+  .block {
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    height: 35.5px;
+    position: relative;
+  }
+
+  .demonstration {
+    margin-right: 10px;
+    min-width: 130px;
+    text-align: right;
+  }
+
+  .highlight {
+    color: deeppink;
+    font-weight: 600;
+  }
+
+  .incremental {
+    color: gray;
+  }
+
+  .annotation {
+    color: deeppink;
+    position: absolute;
+    top: 24px;
+    font-size: 12px;
+    font-weight: 400;
+    right: 140px;
+    text-wrap: nowrap;
+    max-width: 100px;
+  }
+
+  .el-select .el-input__inner {
+    height: 40px;
+  }
+
+  .el-input .el-input__inner {
+    height: 40px;
+  }
+
+  .el-input__suffix {
+    height: 40px;
+  }
+
+  .retrival-container {
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  .el-select-dropdown {
+    margin-top: -15px !important;
+  }
+
+  .question-type-tag {
+    position: absolute;
+    right: 0;
+    top: 0;
+  }
+
+  .el-timeline-item__content {
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e5e7ed;
+  }
+
+  .explanation-container {
+    border: 1px dashed #ccc;
+    font-size: 16px;
+    border-radius: 20px;
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+  }
+</style>
