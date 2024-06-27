@@ -36,21 +36,13 @@ def index():
     # return render_template("SilasIndex.html")
     return send_from_directory(app.static_folder, 'index.html')
 
-@app.route("/chain", methods=["GET", "POST"])
-def chain():
-    # return render_template("SilasIndex.html")
-    return send_from_directory(app.static_folder, 'index_chain.html')
-
-@app.route("/feature_importance", methods=["GET", "POST"])
-def feature_importance():
-    # return render_template("SilasIndex.html")
-    return send_from_directory(app.static_folder, 'feature_importance.html')
 
 
-@app.route('/get_org_instance_chart', methods=['POST','GET'])
+
+@app.route('/get_instance_data_XAI', methods=['POST','GET'])
 @cross_origin()
 def caption_gen():
-    global features_with_values, org_importance, features_,features_values, X_train
+    global features_with_values, org_importance, features_,features_values, X_train,model
     random_seed = 42
     np.random.seed(random_seed)
     random.seed(random_seed)
@@ -61,28 +53,61 @@ def caption_gen():
     instance = X_train.iloc[index]
     prediction = model.predict([instance])
     print("prediction",prediction[0])
-    FEATURES=['sulphates', 'alcohol','total sulfur dioxide', 'volatile acidity','citric acid','free sulfur dioxide']
+    FEATURES = ['fixed acidity','volatile acidity',	'citric acid',	'residual sugar',	'chlorides',	'free sulfur dioxide',	'total sulfur dioxide',	'density','pH','sulphates','alcohol']
+    # FEATURES=['sulphates', 'alcohol','total sulfur dioxide', 'volatile acidity','citric acid','free sulfur dioxide']
     features_ = []
     features_with_bound = []
     features_values=[]
+    importance_dict = getLIMEAttribution(index)
     for i in range(len(FEATURES)):
         feature = FEATURES[i]
+        importance = importance_dict[feature]
         min_val = X_train[feature].min()
         max_val = X_train[feature].max()
         val = instance[feature]
         features_.append(feature)
         features_values.append(val)
-        features_with_bound.append({'name': feature, 'range':[min_val,val,max_val] })
+        if feature == 'free sulfur dioxide':
+            feature = 'free SO2'
+        if feature == 'total sulfur dioxide':
+            feature = 'total SO2'
+        if feature == 'volatile acidity':
+            feature = 'vinegar taint'
+        
+        features_with_bound.append({'name': feature, 'range':[min_val,val,max_val],'importance':importance })
 
     # img_path,features_with_values,features_values, features_, org_importance,features_with_bound,gam_path = org_instance_importance(model, X_train, y_train,X, index)
    
-    return jsonify({'features_with_bound':features_with_bound,"value_list":features_values})
-  
+    return jsonify({'features_with_bound':features_with_bound,"value_list":features_values,"predict":int(prediction[0])})
+
+def getLIMEAttribution(i):
+    global features_with_values, org_importance, features_,features_values, X_train,model
+    X_instance = X_train.iloc[i]
+    explainer = lime.lime_tabular.LimeTabularExplainer(X_train.values, 
+                                                   feature_names=X.columns, 
+                                                   class_names=['<7', '>=7'], 
+                                                   discretize_continuous=True)
+
+    # Generate explanations for a specific instance (replace X_instance with your instance)
+    exp = explainer.explain_instance(X_instance, model.predict_proba, num_features=len(X_train.columns))
+
+    # Get feature weights as a dictionary
+    feature_weights = exp.local_exp[1]  # Use [0] for the '<7' class or [1] for '>=7' class
+
+    # Normalize to -100 to +100 scale
+    max_abs_weight = max(abs(weight) for feature, weight in feature_weights)
+    normalized_importance = {feature: weight * 100 / max_abs_weight for feature, weight in feature_weights}
+
+    # Create final dictionary in the desired format
+    final_importance = {X_train.columns[idx]: normalized_importance.get(idx, 0) for idx in range(len(X_train.columns))}
+
+    return  final_importance
+
 @app.route('/update_annotation', methods=['POST','GET'])
 @cross_origin()
 def update_annotation():
-    FEATURES=['sulphates', 'alcohol','total sulfur dioxide', 'volatile acidity','citric acid','free sulfur dioxide']
-    
+    # FEATURES=['sulphates', 'alcohol','total sulfur dioxide', 'volatile acidity','citric acid','free sulfur dioxide']
+    FEATURES = ['fixed acidity',	'volatile acidity',	'citric acid',	'residual sugar',	'chlorides',	'free sulfur dioxide',	'total sulfur dioxide',	'density','pH','sulphates','alcohol']
     global features_with_values, org_importance, features_
     random_seed = 42
 
@@ -257,4 +282,4 @@ def prototype_retrival(instance, instances_0,instances_1):
   
   
 if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0',port=3331)
+    app.run(debug=False, host='0.0.0.0',port=6001)

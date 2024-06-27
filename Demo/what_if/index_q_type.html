@@ -27,60 +27,65 @@
       <article style="flex: 1">
         <template>
           <el-tabs v-model="activeName">
+            <el-tab-pane label="Input" name="Input">
+              <div style="display:flex;justify-content:space-around;">
+                <div class="block-container retrieval-container" id="CurrentInstance">
+                  <div>Instance: <el-input style="width:100px; margin:0; height:40px;" @change="fetchData" type="number"
+                      v-model="instance_index" placeholder="Input Index" aria-label="Text"></el-input>
+                  </div>
+                  <div class="block" v-for="(item, index) in features_with_bound">
+                    <span class="demonstration">{{item.name}}: </span>
+                    <el-progress style="width:100px;" stroke-width="10" :percentage="computePercentage(item.range)"
+                      :show-text="false">{{item.range[1]}}</el-progress>
+                    <!-- <el-slider show-stops :step="computeStep(item.range)" style="width:130px;" v-model="value_list[index]" :min="item.range[0]" :max="item.range[2]"></el-slider> -->
+                  </div>
+                </div>
+              </div>
 
-            <el-tab-pane label="Induction" name="Induction">
+            </el-tab-pane>
+            <el-tab-pane label="What Output" name="What Output">
+
+            </el-tab-pane>
+            <el-tab-pane label="Certainty" name="Certainty">
+
+            </el-tab-pane>
+            <el-tab-pane label="When" name="When">
               <div class="retrival-container">
-                <span style="font-size:14px;">Select the specific instance: </span>
+                When Type:
                 <el-select style="height: 40px;" placeholder="please select" v-model="cur_retrieval_type">
-                  <el-option label="Similar Instances(similar to the current instance)" value="similar">
+                  <el-option label="Similar Instance" value="similar">
                   </el-option>
-                  <el-option label="Prototypes(median instances for each outcome type)" value="prototype">
+                  <el-option label="Prototypes" value="prototype">
                   </el-option>
                   <!-- <el-option label="Critique examples" value="boundary" disabled> -->
                   </el-option>
                 </el-select>
-
                 <el-button icon="el-icon-search" type="primary" @click="searchInstance"> Search</el-button>
-                <el-select style="height: 40px;" placeholder="please select" v-model="cur_feature">
-                  <el-option v-for="item in features" :label="item" :value="item"></el-option>
-                  <!-- <el-option label="Critique examples" value="boundary" disabled> -->
-                </el-select>
-                <el-button icon="el-icon-search" type="primary" @click="getContrastInstance"> Contrast</el-button>
+                <el-divider></el-divider>
                 <!-- <el-button :disabled="ex_instance_0.length==0 || ex_instance_1.length==0" type="warning">Contrastive explanation</el-button> -->
 
                 <div v-if="features_with_bound.length && value_list.length">
                   <div style="display:flex; justify-content: space-around;">
                     <div class="block-container retrieval-container" v-if="ex_instance_0.length">
-                      <div class="retrival-header">Example in Quality <= <el-input @change="searchInstance" style="width: 80px;" v-model="lessThan"></el-input></div>
-                      <div class="block" v-for="(item, index) in ex_instance_0">
+                      <div class="retrival-header">Example in Low Quality</div>
+                      <div class="block" v-for="(item, index) in ex_instance_0"
+                        :class="{ 'highlight': value_list[index] !== initial_values[index] }">
                         <span class="demonstration">{{item.name}}: </span>
                         <div class="progress-container">
                           <div class="progress-bar">
-
-                            <div class="progress-bar-inner previous"
-                              :style="{ width: calculateWidth(features_with_bound[index].range,item.value) }"></div>
-                            <div v-if="item.value>features_with_bound[index].range[1]"
-                              class="progress-bar-inner current"
-                              :style="{ marginLeft: calculateWidth(features_with_bound[index].range,item.value), width: getChange(item.value,features_with_bound[index].range) + '%' }">
-                            </div>
-                            <!-- <div v-if="item.value<features_with_bound[index].range[1]"
-                              class="progress-bar-inner current_min"
-                              :style="{ marginLeft: calculateWidth(features_with_bound[index].range,item.value), width: Math.abs(getChange(item.value,features_with_bound[index].range)) + '%' }">
-                            </div> -->
-                            <el-tooltip class="box-item" effect="dark" :content="item.value"
-                              placement="right-start">
-                              <div class="cur_label"
-                                :style="{left: calculateCurWidth(features_with_bound[index].range,item.value)}">
-                              </div>
-                            </el-tooltip>
+                            <div class="progress-bar-inner previous" :style="{ width: calculateWidth(features_with_bound[index].range,item.value) }"></div>
+                            <div v-if="item.value>features_with_bound[index].range[1]" class="progress-bar-inner current" 
+                              :style="{ marginLeft: calculateWidth(features_with_bound[index].range,item.value), width: getChange(item.value,features_with_bound[index].range) + '%' }"></div>
+                            <div v-if="item.value<features_with_bound[index].range[1]" class="progress-bar-inner current_min" 
+                                :style="{ marginLeft: calculateWidth(features_with_bound[index].range,item.value), width: Math.abs(getChange(item.value,features_with_bound[index].range)) + '%' }"></div>
                           </div>
-
                         </div>
                         <!-- <el-progress style="width:110px;" stroke-width="10"
                           :percentage="computePercentage_(item.value, index)"
                           :show-text="false">{{item.value}}</el-progress> -->
                         <span class="annotation">
-                          <span :class="getChangeClass(item.value, features_with_bound[index].range)">
+                          <span
+                          :class="getChangeClass(item.value, features_with_bound[index].range)">
                             <!-- <span v-if="getChange(item.value,features_with_bound[index].range)>0">+</span> -->
                             <!-- {{getChange(item.value,features_with_bound[index].range)}}% -->
                             {{getContrastText(item.value,features_with_bound[index].range)}}
@@ -89,23 +94,15 @@
                       </div>
                     </div>
                     <div class="block-container retrieval-container" id="CurrentInstance">
-                      <div class="retrival-header">Instance: <el-input style="width:100px; margin:0; height:40px;"
-                          @change="fetchData" type="number" v-model="instance_index" placeholder="Input Index"
-                          aria-label="Text"></el-input>
+                      <div class="retrival-header">Instance: <el-input style="width:100px; margin:0; height:40px;" @change="fetchData"
+                          type="number" v-model="instance_index" placeholder="Input Index" aria-label="Text"></el-input>
                       </div>
 
                       <div class="block" v-for="(item, index) in features_with_bound">
                         <span class="demonstration">{{item.name}}: </span>
                         <div class="progress-container">
                           <div class="progress-bar">
-                            <div class="progress-bar-inner previous"
-                              :style="{ width: computePercentage(item.range) +'%' }"></div>
-                              <el-tooltip class="box-item" effect="dark" :content="features_with_bound[index].range[1]"
-                              placement="right-start">
-                              <div class="cur_label"
-                                :style="{left: computePercentage(item.range)+'%'}">
-                              </div>
-                            </el-tooltip>
+                            <div class="progress-bar-inner previous" :style="{ width: computePercentage(item.range) +'%' }"></div>
                           </div>
                         </div>
                         <!-- <el-progress style="width:100px;" stroke-width="10" :percentage="computePercentage(item.range)"
@@ -115,35 +112,25 @@
                     </div>
 
                     <div class="block-container retrieval-container" v-if="ex_instance_1.length">
-                      <div class="retrival-header">Example in Quality >= <el-input @change="searchInstance" style="width: 80px;" v-model="moreThan"></el-input></div>
+                      <div class="retrival-header">Example in High Quality</div>
                       <div class="block" v-for="(item, index) in ex_instance_1"
                         :class="{ 'highlight': value_list[index] !== initial_values[index] }">
                         <span class="demonstration">{{item.name}}: </span>
                         <div class="progress-container">
                           <div class="progress-bar">
-                            <div class="progress-bar-inner previous"
-                              :style="{ width: calculateWidth(features_with_bound[index].range,item.value) }"></div>
-                            <div v-if="item.value>features_with_bound[index].range[1]"
-                              class="progress-bar-inner current"
-                              :style="{ marginLeft: calculateWidth(features_with_bound[index].range,item.value), width: getChange(item.value,features_with_bound[index].range) + '%' }">
-                            </div>
-                            <!-- <div v-if="item.value<features_with_bound[index].range[1]"
-                              class="progress-bar-inner current_min"
-                              :style="{ marginLeft: calculateWidth(features_with_bound[index].range,item.value), width: Math.abs(getChange(item.value,features_with_bound[index].range)) + '%' }">
-                            </div> -->
-                            <el-tooltip class="box-item" effect="dark" :content="item.value"
-                            placement="right-start">
-                            <div class="cur_label"
-                              :style="{left: calculateCurWidth(features_with_bound[index].range,item.value)}">
-                            </div>
-                          </el-tooltip>
+                            <div class="progress-bar-inner previous" :style="{ width: calculateWidth(features_with_bound[index].range,item.value) }"></div>
+                            <div v-if="item.value>features_with_bound[index].range[1]" class="progress-bar-inner current" 
+                              :style="{ marginLeft: calculateWidth(features_with_bound[index].range,item.value), width: getChange(item.value,features_with_bound[index].range) + '%' }"></div>
+                            <div v-if="item.value<features_with_bound[index].range[1]" class="progress-bar-inner current_min" 
+                                :style="{ marginLeft: calculateWidth(features_with_bound[index].range,item.value), width: Math.abs(getChange(item.value,features_with_bound[index].range)) + '%' }"></div>
                           </div>
                         </div>
                         <!-- <el-progress style="width:100px;" stroke-width="10"
                           :percentage="computePercentage_(item.value, index)"
                           :show-text="false">{{item.value}}</el-progress> -->
                         <span class="annotation">
-                          <span :class="getChangeClass(item.value, features_with_bound[index].range)">
+                          <span
+                          :class="getChangeClass(item.value, features_with_bound[index].range)">
                             {{getContrastText(item.value,features_with_bound[index].range)}}
                           </span>
                         </span>
@@ -151,70 +138,18 @@
                       </div>
                     </div>
                   </div>
-                  <div>
-                   
-                    <el-button size="mini" @click="showFeatureImportance=true">Why</el-button>
-                  
-                  </div>
-                  <div style="display:flex"
-                    v-if="showFeatureImportance==true && features_with_bound.length && value_list.length ">
-                    <div class="block-container retrieval-container" style="margin-top:16px; margin-right:60px;"
-                      id="CurrentInstance">
-                      <div class="block" v-for="(item, index) in features_with_bound"
-                        :class="{ 'highlight': value_list[index] !== initial_values[index] }">
-                        <span class="demonstration">{{item.name}}: </span>
-                        <span v-if="value_list[index] != initial_values[index]"
-                          class="annotation_">{{initial_values[index]}}->{{value_list[index]}} </span>
-                        <el-slider @change="updateAnnotation" show-stops :step="computeStep(item.range)"
-                          style="width:130px;" v-model="value_list[index]" :min="item.range[0]"
-                          :max="item.range[2]"></el-slider>
-                        <el-switch style="margin-left:10px" v-model="show_gam[index]" active-color="#2D9CDB"
-                          inactive-color="#A4CCE1" active-text="show pdp" @change="changeGam(index)">
-                        </el-switch>
-                        <!-- <el-slider show-stops :step="computeStep(item.range)" style="width:130px;" v-model="value_list[index]" :min="item.range[0]" :max="item.range[2]"></el-slider> -->
-                      </div>
-                      <div>
-                        <el-button @click="fetchData(true)" style="margin-right: 100px;">Reset</el-button>
-                        <!-- <el-button @click="updateAnnotation" type="primary" @click="value_list=initial_values" :disabled="arraysAreEqual">Show Result</el-button> -->
-                      </div>
-                    </div>
-                    <img v-if="org_instance_chart_url.length" style="height: 260px;" :src="org_instance_chart_url" />
-                    <div
-                      style="text-align: center; border: 1px solid; height:80px; width:120px;padding: 10px; position:relative; margin-top:100px">
-                      <span style="position:absolute;top:30px;left:-40px;"> <i class="el-icon-right"></i></span>
-                      <span style="font-weight: 600; font-size:14px;">AI Prediction</span>
-                      <br />
-                      <span style="font-size: 14px;">Quality: {{predict}} </span>
-                    </div>
-                    <div>
-                      <img v-if="gamurl.length" style="height: 260px;" :src="getgamurl" />
+                  <div style="margin-top:30px;">
+                    <div class="explanation-container" v-if="ex_instance_0.length">
+                      Insight: Current Instance is more similar to the similar case in ** Quality, which have the
+                      similar features: *** , and contrastively it has more
+                      different features compared to the similar case in high quality, such as ***.
+                      So, based on these contrasts, this example has a higher probability to be predicted as ** Quality.
                     </div>
                   </div>
-                  <!-- <div class="explanation-container" v-if="showFeatureImportance==true">
-                    <span style="color:#DB2D2D">Why:</span> The analysis indicates that sulphates, volatile acidity, and
-                    alcohol are the primary determinants of wine quality in this instance, with citric acid also playing
-                    a notable role.
-                    <span style="color:#DB2D2D">What If (Sulphates: 1.36 -> 0.642):</span>Adjusting the sulphates from
-                    1.36 to 0.642 resulted in a notable drop in predicted quality, indicating the feature's critical
-                    role.
-                    Alcohol's slight increase in importance did not significantly impact the overall prediction.
-                    Changes in key features like sulphates can significantly influence the AI’s quality prediction,
-                    highlighting their importance in the model's assessment.
-                    <span style="color:#DB2D2D">What If (Sulphates: 1.36 -> 1.73):</span> Higher sulphate levels are
-                    crucial for predicting high wine quality, while lower levels result in a significant drop in
-                    predicted quality.
-                    The initial instance's high sulphates importance suggests it was likely predicting a high-quality
-                    wine.
-                    <span style="color:#DB2D2D">What If (GAM):</span>
-                    The GAM analysis supports that sulphates between approximately 0.6 and 1.6 positively influence
-                    quality. Reducing sulphates to 0.642 led to a lower quality prediction, while increasing to 1.73
-                    (still within the optimal range) resulted in a high-quality prediction.
-                  </div> -->
-
                 </div>
               </div>
             </el-tab-pane>
-            <el-tab-pane label="Deduction" name="Deduction" disabled>
+            <el-tab-pane label="Why(not)" name="Why(not)">
               <div style="display:flex;">
                 <div class="block-container retrieval-container" id="CurrentInstance">
                   <div>Instance: <el-input style="width:100px; margin:0; height:40px;" @change="fetchData" type="number"
@@ -229,6 +164,34 @@
                 <img v-if="org_instance_chart_url.length" style="height: 264px; margin-top:20px;"
                   :src="org_instance_chart_url" />
 
+                <div v-if="org_instance_chart_url.length && mode!='Prediction(Retrieval)'"
+                  style="width: 100%;text-align: center; margin-top: 100px; width: 100%;margin-left: 70px; border: 1px solid; height:80px; padding: 10px; position:relative;">
+                  <span style="position:absolute;top:30px;left:-40px;"> <i class="el-icon-right"></i></span>
+                  <span style="font-weight: 600;">AI Prediction</span>
+                  <br />
+                  <span style="font-size: 14px;">Quality {{predict==null?'?':(predict > 0?'>=7':"<7")}} </span>
+                </div>
+              </div>
+            </el-tab-pane>
+            <el-tab-pane label="What If" name="What If">
+
+              <div style="display:flex" v-if="features_with_bound.length && value_list.length ">
+                <div class="block-container retrieval-container" id="CurrentInstance">
+                  <div>Instance: <el-input style="width:100px; margin:0; height:40px;" @change="fetchData" type="number"
+                      v-model="instance_index" placeholder="Input Index" aria-label="Text"></el-input></div>
+                  <div class="block" v-for="(item, index) in features_with_bound">
+                    <span class="demonstration">{{item.name}}: </span>
+                    <el-slider @change="updateAnnotation" show-stops :step="computeStep(item.range)"
+                    style="width:130px;" v-model="value_list[index]" :min="item.range[0]"
+                    :max="item.range[2]"></el-slider>
+                    <!-- <el-slider show-stops :step="computeStep(item.range)" style="width:130px;" v-model="value_list[index]" :min="item.range[0]" :max="item.range[2]"></el-slider> -->
+                  </div>
+                  <div>
+                    <el-button @click="fetchData">Reset</el-button>
+                    <!-- <el-button @click="updateAnnotation" type="primary" @click="value_list=initial_values" :disabled="arraysAreEqual">Show Result</el-button> -->
+                  </div>
+                </div>
+
                 <div v-if="org_instance_chart_url.length"
                   style="width: 100%;text-align: center; margin-top: 100px; width: 100%;margin-left: 70px; border: 1px solid; height:80px; padding: 10px; position:relative;">
                   <span style="position:absolute;top:30px;left:-40px;"> <i class="el-icon-right"></i></span>
@@ -236,6 +199,38 @@
                   <br />
                   <span style="font-size: 14px;">Quality {{predict==null?'?':(predict > 0?'>=7':"<7")}} </span>
                 </div>
+              </div>
+            </el-tab-pane>
+            <el-tab-pane label="How To" name="How To">
+              <div style="display:flex;">
+                <div class="block-container" id="CurrentInstanceEditor">
+                  <div class="block" v-for="(item, index) in features_with_bound"
+                    :class="{ 'highlight': value_list[index] !== initial_values[index] }">
+                    <span class="demonstration">{{item.name}}: </span>
+                    <span v-if="value_list[index] != initial_values[index]"
+                      class="annotatio what-if-annotation">{{initial_values[index]}}->{{value_list[index]}} </span>
+                    <el-slider @change="updateAnnotation" show-stops :step="computeStep(item.range)"
+                      style="width:130px;" v-model="value_list[index]" :min="item.range[0]"
+                      :max="item.range[2]"></el-slider>
+                  </div>
+
+
+                  <div>
+                    <el-button @click="fetchData">Reset</el-button>
+                    <!-- <el-button @click="updateAnnotation" type="primary" @click="value_list=initial_values" :disabled="arraysAreEqual">Show Result</el-button> -->
+                  </div>
+
+                </div>
+                <img v-if="gam_path.length && activeName=='How To' && !isLoading" height="300px" style="width: 52%;"
+                  :src="gam_path" />
+                <div v-if="org_instance_chart_url.length && mode!='Prediction(Retrieval)'"
+                  style="width: 100%;text-align: center; margin-top: 100px; width: 100%;margin-left: 70px; border: 1px solid; height:80px; padding: 10px; position:relative;">
+                  <span style="position:absolute;top:30px;left:-40px;"> <i class="el-icon-right"></i></span>
+                  <span style="font-weight: 600;">AI Prediction</span>
+                  <br />
+                  <span style="font-size: 14px;">Quality {{predict==null?'?':(predict > 0?'>=7':"<7")}} </span>
+                </div>
+
               </div>
             </el-tab-pane>
 
@@ -283,31 +278,19 @@
         predict: null,
         isLoading: false,
         mode: 'Prediction(What if)',
-        cur_retrieval_type: 'prototype',
+        cur_retrieval_type: 'similar',
         ex_instance_0: [],
         ex_instance_1: [],
         user_res: -1,
         showValidation: false,
         gam_path: '',
-        activeName: 'Induction',
-        showFeatureImportance: false,
-        show_gam: [0, 0, 0, 0, 0, 0],
-        gamurl: '',
-        lessThan:4,
-        moreThan:7,
-        cur_feature:'',
-        features:['sulphates', 'alcohol','total sulfur dioxide', 'volatile acidity','citric acid','free sulfur dioxide']
+        activeName: 'When'
       }
     },
     methods: {
-      async fetchData(partial) {
-        if (partial != true) {
-          this.ex_instance_0 = []
-          this.ex_instance_1 = []
-          this.showFeatureImportance = false
-          this.show_gam = [0, 0, 0, 0, 0, 0]
-        }
-
+      async fetchData() {
+        this.ex_instance_0 = []
+        this.ex_instance_1 = []
         this.predict = null
         this.isLoading = true
         try {
@@ -326,6 +309,8 @@
           console.log("this.value_list222", this.value_list)
           this.initial_values = [...this.value_list]; // Store initial values
           this.features_with_bound = res.features_with_bound;
+          this.org_instance_chart_url = res.img_path
+          this.gam_path = res.gam_path
           this.isLoading = false
 
         } catch (error) {
@@ -354,7 +339,9 @@
             });
             const res = await response.json();
             this.isLoading = false
-         
+            setTimeout(() => {
+              this.gam_path = res.img_path
+            })
             this.predict = res.predict
 
           } catch (error) {
@@ -382,42 +369,17 @@
           });
           const res = await response.json();
           this.isLoading = false
-       
+          setTimeout(() => {
+            this.org_instance_chart_url = res.img_path
+          })
           this.predict = res.predict
 
         } catch (error) {
           console.error('Error fetching data:', error);
         }
       },
-      async getContrastInstance() {
-        this.isLoading = true
-        try {
-          const headers = {
-            'Content-Type': 'application/json'
-          };
-          const response = await fetch(`${window.location.href}get_similar_instance`, {
-            method: 'POST',
-            body: JSON.stringify(
-              {
-                'index': this.instance_index,
-                'feature_name': this.cur_feature,
-              }
-            ),
-            headers: headers,
-            mode: 'cors'
-          });
-          const res = await response.json();
-          this.isLoading = false
-       
-          console.log(res)
-
-        } catch (error) {
-          console.error('Error fetching data:', error);
-        }
-      },
-      
       computeStep(range) {
-        const step = (range[2] - range[0]) / 6;
+        const step = (range[2] - range[0]) / 4;
         let format_ = 3
         if (step < 0.001) {
           format_ = 5
@@ -444,7 +406,7 @@
           };
           const response = await fetch(`${window.location.href}instance_retrieval`, {
             method: 'POST',
-            body: JSON.stringify({ 'index': this.instance_index, 'type': this.cur_retrieval_type,'lessThan':this.lessThan,'moreThan':this.moreThan }),
+            body: JSON.stringify({ 'index': this.instance_index, 'type': this.cur_retrieval_type }),
             headers: headers,
             mode: 'cors'
           });
@@ -528,7 +490,7 @@
           return 'similar';
         }
         else if (Math.abs(change) < 10) {
-          return 'incremental';
+            return 'incremental';
         }
         else if (Math.abs(change) < 30) {
           return '';
@@ -545,7 +507,7 @@
           str_trend = 'higher'
         }
         let str_desc = ''
-        if (Math.abs(diff) < 10) {
+        if (Math.abs(diff) < 10 ) {
           str_desc = 'Slightly'
         }
         else if (Math.abs(diff) < 30) {
@@ -558,39 +520,21 @@
         console.log("123", str_desc + ' ' + str_trend)
         return str_desc + ' ' + str_trend
       },
-      calculateWidth(value, new_val) {
-        if (new_val > value[1]) {
-          return `${((value[1] - value[0]) / (value[2] - value[0])) * 100}%`;
-        } else {
-          return `${((new_val - value[0]) / (value[2] - value[0])) * 100}%`;
+      calculateWidth(value,new_val) {
+        if (new_val > value[1]){
+          return `${((value[1]- value[0])/ (value[2]-value[0])) * 100}%`;
+        } else{
+          return `${((new_val - value[0])/ (value[2]-value[0])) * 100}%`;
         }
       },
-      calculateCurWidth(value, new_val) {
-        return `${((new_val - value[0]) / (value[2] - value[0])) * 100}%`;
-      },
-      changeGam(index) {
-        if (this.show_gam[index] == 0) {
-          this.gamurl = ''
-          return
-        }
-        this.gamurl = this.features_with_bound[index].name
-        for (i = 0; i < 6; i++) {
-          if (i !== index) {
-            this.show_gam[i] = 0
-          }
-        }
+      calculateCurWidth(value,new_val){
+        return `${((new_val - value[0])/ (value[2]-value[0])) * 100}%`;
       }
 
     },
     computed: {
       arraysAreEqual() {
         return JSON.stringify(this.initial_values) === JSON.stringify(this.value_list);
-      },
-      getgamurl() {
-        if (this.gamurl == '') {
-          return ''
-        }
-        return 'imgs/gam_' + this.gamurl + '.png'
       }
     },
 
@@ -599,8 +543,7 @@
     },
     mounted() {
       this.fetchData()
-    },
-
+    }
   })
 </script>
 <style>
@@ -649,12 +592,10 @@
     color: #2D9CDB;
     font-weight: 600;
   }
-
-  .similar {
+  .similar{
     color: #ccc;
     font-weight: 100;
   }
-
   .incremental {
     color: #A4CCE1;
     font-weight: 200;
@@ -676,15 +617,7 @@
     text-align: left;
     margin-left: 8px;
   }
-
-  .annotation_ {
-    position: absolute;
-    top: 24px;
-    font-size: 12px;
-    right: 230px;
-  }
-
-  .what-if-annotation {
+  .what-if-annotation{
     position: absolute;
   }
 
@@ -702,7 +635,7 @@
 
   .retrival-container {
     text-align: center;
-    margin-top: 20px;
+    margin-top: 10px;
   }
 
   .el-select-dropdown {
@@ -722,7 +655,7 @@
 
   .explanation-container {
     border: 1px dashed #ccc;
-    font-size: 13px;
+    font-size: 16px;
     border-radius: 20px;
     width: 100%;
     padding: 10px;
@@ -732,8 +665,7 @@
   .el-tabs__content {
     height: calc(100vh - 120px);
   }
-
-  .progress-container {
+  .progress-container{
     width: 100px;
   }
 
@@ -756,38 +688,15 @@
   }
 
   .current {
- 
-    background-color: #2D9CDB;
+    background-color: #00507D;
   }
-
-  .current_min {
+  .current_min{
     background-color: #A4CCE1;
   }
-
-  .retrival-header {
-    height: 40px;
-    font-size: 16px;
+  .retrival-header{
+    height: 50px;
   }
-
-  .el-button--primary {
+  .el-button--primary{
     background-color: #2D9CDB;
-  }
-
-  .el-switch__label * {
-    font-size: 10px;
-    font-weight: 200;
-    width: 26px;
-
-  }
-
-  .cur_label {
-    position: absolute;
-    width: 6px;
-    height: 6px;
-    border-radius: 6px;
-    background: rgba(0,0,0,0);
-    top: 2px;
-    margin-left: -4px;
-    cursor: pointer;
   }
 </style>

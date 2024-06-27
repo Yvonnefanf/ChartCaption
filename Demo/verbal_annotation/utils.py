@@ -25,11 +25,11 @@ def get_model():
 
     # Step 2: Train a Model
     X = data.drop("quality", axis=1)
-    y = data["quality"]
-    # y = data['quality'].apply(lambda x: 1 if x >= 7 else 0)  # 2 class: >=7 high quality <7 low quality
+    # y = data["quality"]
+    y = data['quality'].apply(lambda x: 1 if x >= 7 else 0)  # 2 class: >=7 high quality <7 low quality
     
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    model = RandomForestRegressor(n_estimators=100, random_state=random_seed)
+    model = RandomForestClassifier(n_estimators=100, random_state=random_seed)
     model.fit(X_train, y_train)
     y_test = np.array(y_test)
     pred = model.predict(X_train)
