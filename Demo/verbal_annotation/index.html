@@ -27,7 +27,7 @@
       <article style="flex: 1">
         <template>
           <div class="retrival-container">
-            <div v-if="features_with_bound.length && value_list.length">
+            <div v-if="features_with_bound.length">
               <div style="display: flex; align-items: center;">
                 <div class="retrival-header">Instance: <el-input style="width:100px; margin:0; height:40px;"
                   @change="fetchData" type="number" v-model="instance_index" placeholder="Input Index"
@@ -45,41 +45,7 @@
               </div>
 
               <div style="display:flex;">
-                <div class="block-container retrieval-container" v-show="ex_instance_1.length">
-                  <div class="retrival-header">Example in Quality >= <el-input @change="searchInstance"
-                      style="width: 80px;" v-model="moreThan"></el-input></div>
-                  <div class="block" v-for="(item, index) in ex_instance_1"
-                    :class="{ 'highlight': value_list[index] !== initial_values[index] }">
-                    <span class="demonstration">{{item.name}}: </span>
-                    <div class="progress-container">
-                      <div class="progress-bar">
-                        <div class="progress-bar-inner previous"
-                          :style="{ width: calculateWidth(features_with_bound[index].range,item.value) }"></div>
-                        <div v-if="item.value>features_with_bound[index].range[1]" class="progress-bar-inner current"
-                          :style="{ marginLeft: calculateWidth(features_with_bound[index].range,item.value), width: getChange(item.value,features_with_bound[index].range) + '%' }">
-                        </div>
-                        <!-- <div v-if="item.value<features_with_bound[index].range[1]"
-                              class="progress-bar-inner current_min"
-                              :style="{ marginLeft: calculateWidth(features_with_bound[index].range,item.value), width: Math.abs(getChange(item.value,features_with_bound[index].range)) + '%' }">
-                            </div> -->
-                        <el-tooltip class="box-item" effect="dark" :content="item.value" placement="right-start">
-                          <div class="cur_label"
-                            :style="{left: calculateCurWidth(features_with_bound[index].range,item.value)}">
-                          </div>
-                        </el-tooltip>
-                      </div>
-                    </div>
-                    <!-- <el-progress style="width:100px;" stroke-width="10"
-                          :percentage="computePercentage_(item.value, index)"
-                          :show-text="false">{{item.value}}</el-progress> -->
-                    <span class="annotation">
-                      <span :class="getChangeClass(item.value, features_with_bound[index].range)">
-                        {{getContrastText(item.value,features_with_bound[index].range)}}
-                      </span>
-                    </span>
-                    <!-- <el-slider show-stops :step="computeStep(item.range)" style="width:130px;" v-model="value_list[index]" :min="item.range[0]" :max="item.range[2]"></el-slider> -->
-                  </div>
-                </div>
+                
 
               <div class="block-container retrieval-container" id="CurrentInstance">
                   <div  class="block" v-for="(item, index) in features_with_bound">
@@ -184,36 +150,14 @@
         dataSet: 'RedWine',
         org_instance_chart_url: '',
         instance_index: 17,
-        current_feature: '',
-        feature_value: null,
+        example_intance_index:0,
         features_with_bound: [],
-        value_list: [],
-        initial_values: [],
         predict: null,
         isLoading: false,
-        mode: 'Prediction(What if)',
-        cur_retrieval_type: 'prototype',
-        ex_instance_0: [],
-        ex_instance_1: [],
-        user_res: -1,
-        showValidation: false,
-        showFeatureImportance: false,
-        lessThan: 4,
-        moreThan: 7,
-        cur_feature: '',
-        features: ['sulphates', 'alcohol', 'total sulfur dioxide', 'volatile acidity', 'citric acid', 'free sulfur dioxide']
       }
     },
     methods: {
-      async fetchData(partial) {
-        if (partial != true) {
-          this.ex_instance_0 = []
-          this.ex_instance_1 = []
-          this.showFeatureImportance = false
-
-        }
-
-        this.predict = null
+      async fetchData() {
         this.isLoading = true
         try {
           const headers = {
@@ -226,10 +170,6 @@
             mode: 'cors'
           });
           const res = await response.json();
-          console.log("this.value_list", res.value_list)
-          this.value_list = res.value_list.map(value => parseFloat(value)); // Ensure values are numbers
-          console.log("this.value_list222", this.value_list)
-          this.initial_values = [...this.value_list]; // Store initial values
           this.features_with_bound = res.features_with_bound;
           this.isLoading = false
           this.predict = res.predict
@@ -237,33 +177,6 @@
         } catch (error) {
           console.error('Error fetching data:', error);
           this.isLoading = false
-        }
-      },
-
-      async getContrastInstance() {
-        this.isLoading = true
-        try {
-          const headers = {
-            'Content-Type': 'application/json'
-          };
-          const response = await fetch(`${window.location.href}get_similar_instance`, {
-            method: 'POST',
-            body: JSON.stringify(
-              {
-                'index': this.instance_index,
-                'feature_name': this.cur_feature,
-              }
-            ),
-            headers: headers,
-            mode: 'cors'
-          });
-          const res = await response.json();
-          this.isLoading = false
-
-          console.log(res)
-
-        } catch (error) {
-          console.error('Error fetching data:', error);
         }
       },
 
@@ -286,37 +199,7 @@
         let format_ = 1
         return Number(percentage.toFixed(format_));
       },
-      async searchInstance() {
-        this.fetchData()
-        this.isLoading = true
-        try {
-          const headers = {
-            'Content-Type': 'application/json'
-          };
-          const response = await fetch(`${window.location.href}instance_retrieval`, {
-            method: 'POST',
-            body: JSON.stringify({ 'index': this.instance_index, 'type': this.cur_retrieval_type, 'lessThan': this.lessThan, 'moreThan': this.moreThan }),
-            headers: headers,
-            mode: 'cors'
-          });
-          const res = await response.json();
-          this.features_with_bound.forEach(feature => {
-            const name = feature.name;
-            if (res.instance_0.hasOwnProperty(name)) {
-              this.ex_instance_0.push({ name: name, value: res.instance_0[name] });
-            }
-            if (res.instance_1.hasOwnProperty(name)) {
-              this.ex_instance_1.push({ name: name, value: res.instance_1[name] });
-            }
-          });
-          console.log("ex_instance_0", this.ex_instance_0, this.ex_instance_1)
-
-          this.isLoading = false
-        } catch (error) {
-          console.error('Error fetching data:', error);
-          this.isLoading = false
-        }
-      },
+     
       startGuide() {
         this.$nextTick(() => {
           this.driver = new Driver();
@@ -422,9 +305,6 @@
 
     },
     computed: {
-      arraysAreEqual() {
-        return JSON.stringify(this.initial_values) === JSON.stringify(this.value_list);
-      },
 
     },
 
