@@ -58,7 +58,7 @@ def caption_gen():
     instance = X_train.iloc[index]
     prediction = model.predict([instance])
     print("prediction",prediction[0])
-    FEATURES = ['fixed acidity','volatile acidity',	'citric acid',	'residual sugar',	'chlorides',	'free sulfur dioxide',	'total sulfur dioxide',	'density','pH','sulphates','alcohol']
+    FEATURES = ['fixed acidity','volatile acidity',	'citric acid',	'residual sugar','chlorides','free sulfur dioxide',	'density','pH','sulphates','alcohol']
     # FEATURES=['sulphates', 'alcohol','total sulfur dioxide', 'volatile acidity','citric acid','free sulfur dioxide']
     features_ = []
     features_with_bound = []
@@ -84,13 +84,15 @@ def caption_gen():
         features_values.append(val)
         order = order_[i]
         if feature == 'free sulfur dioxide':
-            feature = 'free SO2'
-        if feature == 'total sulfur dioxide':
-            feature = 'total SO2'
+            feature = 'SO2'
+        # if feature == 'total sulfur dioxide':
+        #     feature = 'total SO2'
         if feature == 'volatile acidity':
             feature = 'vinegar-taint'
         if feature == 'fixed acidity':
             feature = 'fixed-acidity'
+        if feature == 'residual sugar':
+            feature = 'sweetness'
         
         features_with_bound.append({'name': feature, 'range':[min_val,val,max_val],'importance':importance,'importance_order':order })
         # Sort features by the absolute value of their importance
