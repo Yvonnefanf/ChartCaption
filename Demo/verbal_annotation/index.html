@@ -13,16 +13,17 @@
   <script src="https://unpkg.com/element-ui/lib/index.js"></script>
   <title></title>
   <script src="request.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/driver.js/dist/driver.min.js"></script>
-  <link rel="stylesheet" href="thirdParty/driver.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/driver.js/dist/driver.min.js"></script>
+  <!-- <link rel="stylesheet" href="thirdParty/driver.min.css">
+  <script src="thirdParty/driver.min.js"></script> -->
+  <script src="thirdParty/driver.js.iife.js"></script>
+  <link rel="stylesheet" href="thirdParty/driver.css" />
 
 </head>
 
 <body>
   <main id="app">
     <div style="display:flex;padding: 0 20px;">
-      <el-button style="position:fixed; right:0" type="warning" @click="startGuide">Show Tutorial </el-button>
+      <!-- <el-button style="position:fixed; right:0" type="warning" @click="startGuide">Show Annotation </el-button> -->
 
       <article style="flex: 1">
         <template>
@@ -30,52 +31,59 @@
             <div v-if="features_with_bound.length">
               <div style="display: flex; align-items: center;">
                 <div class="retrival-header">Instance: <el-input style="width:100px; margin:0; height:40px;"
-                  @change="fetchData" type="number" v-model="instance_index" placeholder="Input Index"
-                  aria-label="Text"></el-input>
-              </div>
-                <el-switch style="margin-left:10px;" v-model="showXAI" active-text="show XAI"
-                ></el-switch>
-                <el-switch style="margin-left:10px;" v-model="showOneMore" active-text="show One more"
-                ></el-switch>
+                    @change="fetchData" type="number" v-model="instance_index" placeholder="Input Index"
+                    aria-label="Text"></el-input>
+                </div>
+                <el-switch style="margin-left:10px;" v-model="showXAI" active-text="show XAI"></el-switch>
+                <el-switch style="margin-left:10px;" v-model="showOneMore" active-text="show One more"></el-switch>
               </div>
               <div style="display: flex; align-items: center; font-size:14px; font-weight:600; margin-top:20px;">
                 <div style="width: 100px; text-align:right;">Attribution</div>
                 <div style="width: 120px; margin-left:18px;">Value</div>
-                <div style="width: 200px;text-align: center;margin-left: 20px;">Influence</div>
+                <div v-if="showXAI" style="width: 200px;text-align: center;margin-left: 20px;">Influence</div>
               </div>
 
-              <div style="display:flex;">
-                
-
-              <div class="block-container retrieval-container" id="CurrentInstance">
-                  <div  class="block" v-for="(item, index) in features_with_bound">
-                    <span class="demonstration">{{item.name}}: <span style="font-size: 14px; width: 40px; display: inline-block;">{{item.range[1].toFixed(2)}} </span></span>
-                    <div class="progress-container">
-                      <div class="progress-bar">
-                        <div class="progress-bar-inner previous" :style="{ width: computePercentage(item.range) +'%' }">
-                        </div>
-                        <el-tooltip class="box-item" effect="dark" :content="features_with_bound[index].range[1]"
-                          placement="right-start">
-                          <div class="cur_label" :style="{left: computePercentage(item.range)+'%'}">
+              <div style="display:flex; position: relative">
+                <div v-if="showXAI" class="divider"></div>
+                <div v-if="showXAI" style="left:460px" class="divider"></div>
+                <div class="divider"></div>
+                <div class="block-container retrieval-container" id="CurrentInstance">
+                  <div :id="item.name + '_item'" :class="['block', item.name]"
+                    v-for="(item, index) in features_with_bound">
+                    <div style="display:flex;align-items:center;"
+                      :class="(item.importance < threshold && item.importance>-threshold)?'need_hidden':''">
+                      <span class="demonstration">{{item.name}}:
+                        <span class="feature-value">{{item.range[1].toFixed(2)}}
+                        </span></span>
+                      <div class="progress-container" :id="item.name + '_value'">
+                        <div class="progress-bar">
+                          <div class="progress-bar-inner previous"
+                            :style="{ width: computePercentage(item.range) +'%' }">
                           </div>
-                        </el-tooltip>
+                          <el-tooltip class="box-item" effect="dark" :content="features_with_bound[index].range[1]"
+                            placement="right-start">
+                            <div class="cur_label" :style="{left: computePercentage(item.range)+'%'}">
+                            </div>
+                          </el-tooltip>
+                        </div>
                       </div>
+                      <div v-if="showXAI" class="bar_container" :id="item.name + '_XAI'"
+                        :class="(item.importance < threshold && item.importance>-threshold)?'need_hidden':''">
+                        <div v-if="item.importance<0"
+                          :style="{width: -item.importance + 'px', marginLeft: 100+item.importance + 'px'}"
+                          class="bar_negative"></div>
+                        <div v-if="item.importance>0" class="bar_positive" :style="{width: item.importance + 'px'}">
+                        </div>
+                      </div>
+                      <el-button style="margin-left:20px; width: 30px; box-shadow: 3px 3px 10px #ccc" size="mini" v-if="(item.importance > threshold || item.importance< -threshold)" plain circle @click="startGuide(item.name)">{{item.importance_order}}</el-button>
                     </div>
                   </div>
-                </div>
-                <div v-if="showXAI" class="block-container retrieval-container" style="border:1px solid #000; padding: 0 10px; position:relative" id="CurrentInstance">
-                  <div class="block" v-for="(item, index) in features_with_bound">
-                    <div class="bar_container">
-                      <div v-if="item.importance<0" :style="{width: -item.importance + 'px', marginLeft: 100+item.importance + 'px'}" class="bar_negative"></div>
-                      <div v-if="item.importance>0" class="bar_positive" :style="{width: item.importance + 'px'}"></div>
+                  <div style="position:absolute; bottom:-20px; left:250px; font-size:14px; color:#2D9CDB"> {{'<7'}} </div>
+                    <div style="position:absolute; bottom:-20px; left:430px;font-size:14px; color:#DB2D2D"> {{'>=7'}}
                     </div>
-                    <!-- <el-progress style="width:100px;" stroke-width="10" :percentage="computePercentage(item.range)"
-                          :show-text="false">{{item.range[1]}}</el-progress> -->
-                    <!-- <el-slider show-stops :step="computeStep(item.range)" style="width:130px;" v-model="value_list[index]" :min="item.range[0]" :max="item.range[2]"></el-slider> -->
                   </div>
-                  <div style="position:absolute; bottom:-20px;font-size:14px; color:#2D9CDB"> {{'<7'}}</div>
-                  <div style="position:absolute; bottom:-20px; right:0;font-size:14px; color:#DB2D2D"> {{'>=7'}}</div>
-                </div>
+           
+
                 <div
                   style="text-align: center; border: 1px solid; height:80px; width:120px;padding: 10px; position:relative; margin-top:10%;margin-left:20px;">
                   <span style="position:absolute;top:30px;left:-30px;"> <i class="el-icon-right"></i></span>
@@ -85,8 +93,9 @@
                 </div>
 
                 <div class="block-container retrieval-container" id="OneMore" v-if="showOneMore">
-                  <div  class="block" v-for="(item, index) in features_with_bound">
-                    <span class="demonstration">{{item.name}}: <span style="font-size: 14px; width: 40px; display: inline-block;">{{item.range[1].toFixed(2)}} </span></span>
+                  <div :class="['block', item.name]" v-for="(item, index) in features_with_bound">
+                    <span class="demonstration">{{item.name}}: <span class="feature-value">{{item.range[1].toFixed(2)}}
+                      </span></span>
                     <div class="progress-container">
                       <div class="progress-bar">
                         <div class="progress-bar-inner previous" :style="{ width: computePercentage(item.range) +'%' }">
@@ -99,28 +108,33 @@
                       </div>
                     </div>
                   </div>
+                  <div style="position:absolute; bottom:-20px;font-size:14px; color:#2D9CDB"> {{'<7'}} </div>
+                  <div style="position:absolute; bottom:-20px; right:0;font-size:14px; color:#DB2D2D"> {{'>=7'}}</div>
+            
                 </div>
-                <div v-if="showXAI && showOneMore" class="block-container retrieval-container" style="border:1px solid #000; padding: 0 10px; position:relative" id="CurrentInstance">
-                  <div class="block" v-for="(item, index) in features_with_bound">
+                <div v-if="showXAI && showOneMore" class="block-container retrieval-container"
+                  style="border:1px solid #000; padding: 0 10px; position:relative" id="CurrentInstance">
+                  <div :class="['block', item.name]" v-for="(item, index) in features_with_bound">
                     <div class="bar_container">
-                      <div v-if="item.importance<0" :style="{width: -item.importance + 'px', marginLeft: 100+item.importance + 'px'}" class="bar_negative"></div>
-                      <div v-if="item.importance>0" class="bar_positive" :style="{width: item.importance + 'px'}"></div>
+                      <div v-if="item.importance<0"
+                        :style="{width: -item.importance + 'px', marginLeft: 100+item.importance + 'px'}"
+                        class="bar_negative"></div>
+                      <div v-if="item.importance>0" class="bar_positive" :style="{width: item.importance + 'px'}">
+                      </div>
                     </div>
                     <!-- <el-progress style="width:100px;" stroke-width="10" :percentage="computePercentage(item.range)"
                           :show-text="false">{{item.range[1]}}</el-progress> -->
                     <!-- <el-slider show-stops :step="computeStep(item.range)" style="width:130px;" v-model="value_list[index]" :min="item.range[0]" :max="item.range[2]"></el-slider> -->
                   </div>
-                  <div style="position:absolute; bottom:-20px;font-size:14px; color:#2D9CDB"> {{'<7'}}</div>
-                  <div style="position:absolute; bottom:-20px; right:0;font-size:14px; color:#DB2D2D"> {{'>=7'}}</div>
+
+
+
+
                 </div>
 
 
-
               </div>
-
-
             </div>
-          </div>
 
         </template>
 
@@ -141,19 +155,21 @@
 
 </html>
 <script>
+
   window.vueApp = new Vue({
     el: '#app',
     data() {
       return {
-        showXAI:true,
-        showOneMore:false,
+        showXAI: true,
+        showOneMore: false,
         dataSet: 'RedWine',
         org_instance_chart_url: '',
         instance_index: 17,
-        example_intance_index:0,
+        example_intance_index: 0,
         features_with_bound: [],
         predict: null,
         isLoading: false,
+        threshold: 30
       }
     },
     methods: {
@@ -199,54 +215,49 @@
         let format_ = 1
         return Number(percentage.toFixed(format_));
       },
-     
-      startGuide() {
+
+      startGuide(featurename) {
         this.$nextTick(() => {
-          this.driver = new Driver();
+          const driver = window.driver.js.driver;
+
           const steps = [
             {
-              element: '#Chain',
+              element: `#${featurename}_XAI`,
               popover: {
-                title: 'Chain of mental model',
-                description: '***',
-                position: 'right'
+                title: 'Influence Value',
+                description: '<span style="color:#DB2D2D">Strong positive influence</span>',
+                side: "bottom",
+                align: 'start'
               },
             },
             {
-              element: '#InstanceSelection',
+              element: `#${featurename}_value`,
               popover: {
-                title: 'Instance Selection',
-                description: '***',
-                position: 'bottom'
+                title: 'Feature Value',
+                description: 'Mid Level sulphates',
+                position: 'bottom',
+                align: 'start'
               },
             },
             {
-              element: '#SettingSelection',
+              element: `#${featurename}_item`,
               popover: {
-                title: 'Setting Selection',
-                description: 'Choose from various levels and types of information.',
-                position: 'bottom'
+                title: 'Relation',
+                description: 'Mid Level sulphate <i class="el-icon-right"></i> <span style="color:#DB2D2D">Quality <i class="el-icon-d-arrow-right arrow-up"></i></span> ',
+                position: 'bottom',
+                align: 'start'
               },
             },
-            {
-              element: '#CurrentInstance',
-              popover: {
-                title: 'Current Instance Info',
-                description: `Displays the feature name, corresponding range, and current value of the current instance.`,
-                position: 'right'
-              },
-            },
-            {
-              element: '#CurrentInstanceEditor',
-              popover: {
-                title: 'Current Instance Editor',
-                description: `Displays the feature name, corresponding range, and current value of the current instance. You can adjust these to get the output for a new instance.`,
-                position: 'right'
-              },
-            }
+
           ]
-          this.driver.defineSteps(steps)
-          this.driver.start()
+
+          this.driver = driver({
+            showProgress: true,
+            steps: steps
+          })
+
+          this.driver.drive()
+
         })
       },
       getChange(new_val, range) {
@@ -359,6 +370,12 @@
     font-weight: 200;
   }
 
+  .feature-value {
+
+    width: 40px;
+    display: inline-block;
+  }
+
   .highlight {
     color: #2D9CDB;
     font-weight: 600;
@@ -433,6 +450,13 @@
     padding-bottom: 15px;
     border-bottom: 2px solid #e5e7ed;
   }
+  .divider{
+    height: 100%;
+    width: 1px;
+    position: absolute;
+    background-color: #000;
+    left: 240px;
+  }
 
   .explanation-container {
     border: 1px dashed #ccc;
@@ -454,7 +478,7 @@
   .progress-bar {
     position: relative;
     height: 10px;
-    background-color: #ebeef5;
+    background-color: #fafafa;
     border-radius: 5px;
     overflow: hidden;
     border: 1px solid #d6d5d5;
@@ -488,10 +512,7 @@
     background-color: #2D9CDB;
   }
 
-  .el-switch__label * {
- 
-
-  }
+  .el-switch__label * {}
 
   .cur_label {
     position: absolute;
@@ -503,19 +524,40 @@
     margin-left: -4px;
     cursor: pointer;
   }
-  .bar_container{
-    width: 200px; 
-    height:20px;
+
+  .bar_container {
+    width: 200px;
+    height: 20px;
     display: flex;
-    background:#fafafa;
+    background: #fafafa;
+    margin-left: 20px;
+    border: 1px solid #ccc;
+
   }
-  .bar_negative{
+
+  .bar_negative {
     width: 100px;
-    background:#2D9CDB;
+    background: #2D9CDB;
   }
-  .bar_positive{
+
+  .bar_positive {
     width: 0px;
-    background:#DB2D2D;
+    background: #DB2D2D;
     margin-left: 100px;
+  }
+
+  .driver-highlighted-custom {
+    box-shadow: 0 0 0 5px rgba(0, 123, 255, 0.5);
+    border: 2px solid rgba(0, 123, 255, 1);
+  }
+
+  .need_hidden {
+    opacity: 0.2;
+    font-size: 12px;
+  }
+  .arrow-up {
+    transform: rotate(-90deg);
+    font-size: 16px;
+    font-weight: 600;
   }
 </style>

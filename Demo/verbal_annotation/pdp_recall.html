@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Line Chart Drawing</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 1px solid #000;
+        }
+        #container {
+            text-align: center;
+        }
+        #instructions {
+            margin-bottom: 20px;
+        }
+        button {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="instructions">
+            <h1>PDP Recall</h1>
+            <p>Click on the canvas to draw a line chart from left to right. <br/>
+                Each segment can only be clicked once, and must be done in sequential order.<br/> 
+                The y-axis represents quality, and the x-axis represents feature A. 
+                </p>
+
+        </div>
+        <canvas id="lineChart" width="500" height="400"></canvas>
+        <br>
+        <button id="clearButton">Clear</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('lineChart');
+        const ctx = canvas.getContext('2d');
+        const clearButton = document.getElementById('clearButton');
+        const points = [];
+        const numSegments = 5;
+        const segmentWidth = canvas.width / numSegments;
+        const zeroLineY = canvas.height / 2;
+
+        function drawGridAndLabels() {
+            // Draw initial horizontal line at y=0
+            ctx.beginPath();
+            ctx.moveTo(0, zeroLineY);
+            ctx.lineTo(canvas.width, zeroLineY);
+            ctx.strokeStyle = '#000';
+            ctx.stroke();
+
+            // Draw vertical segments
+            for (let i = 0; i <= numSegments; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * segmentWidth, 0);
+                ctx.lineTo(i * segmentWidth, canvas.height);
+                ctx.strokeStyle = '#ccc';
+                ctx.stroke();
+            }
+
+            // Draw y-axis label
+            ctx.font = '16px Arial';
+            ctx.fillStyle = '#000';
+        }
+
+        function highlightCurrentSegment() {
+            const currentSegmentIndex = points.length;
+
+            // Clear previous segment highlight
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGridAndLabels();
+
+            // Highlight current segment
+            ctx.fillStyle = 'rgba(173, 216, 230, 0.3)'; // Light blue highlight
+            ctx.fillRect(currentSegmentIndex * segmentWidth, 0, segmentWidth, canvas.height);
+
+            // Redraw points and lines
+            drawPointsAndLines();
+        }
+
+        canvas.addEventListener('click', function(event) {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            const segmentIndex = Math.floor(x / segmentWidth);
+
+            if (points.length === segmentIndex && points.length < numSegments + 1) {
+                points.push({ x, y });
+                drawPointsAndLines();
+                highlightCurrentSegment();
+            }
+        });
+
+        clearButton.addEventListener('click', function() {
+            points.length = 0;
+            drawPointsAndLines();
+            highlightCurrentSegment();
+        });
+
+        function drawPointsAndLines() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGridAndLabels();
+
+            // Draw points and lines
+            if (points.length > 0) {
+                ctx.beginPath();
+                ctx.moveTo(points[0].x, points[0].y);
+
+                for (const point of points) {
+                    ctx.lineTo(point.x, point.y);
+                }
+
+                ctx.strokeStyle = '#007bff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                for (const point of points) {
+                    ctx.beginPath();
+                    ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+                    ctx.fillStyle = '#ff6347';
+                    ctx.fill();
+                    ctx.strokeStyle = '#000';
+                    ctx.stroke();
+                }
+            }
+        }
+
+        // Initial drawing setup
+        drawPointsAndLines();
+        highlightCurrentSegment();
+    </script>
+</body>
+</html>

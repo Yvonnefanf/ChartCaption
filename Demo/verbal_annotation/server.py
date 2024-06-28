@@ -36,6 +36,11 @@ def index():
     # return render_template("SilasIndex.html")
     return send_from_directory(app.static_folder, 'index.html')
 
+@app.route("/test", methods=["GET", "POST"])
+def test_interface():
+    # return render_template("SilasIndex.html")
+    return send_from_directory(app.static_folder, 'pdp_recall.html')
+
 
 
 
@@ -59,6 +64,16 @@ def caption_gen():
     features_with_bound = []
     features_values=[]
     importance_dict = getLIMEAttribution(index)
+    
+    importance_list = [(feature, abs(importance_dict[feature])) for feature in FEATURES]
+    importance_list_sorted = sorted(importance_list, key=lambda x: x[1], reverse=True)
+    cur_importance_order = [FEATURES.index(feature) for feature, _ in importance_list_sorted]
+    
+    # Create the order_ array based on sorted importance
+    order_ = [0] * len(FEATURES)
+    for i, idx in enumerate(cur_importance_order):
+        order_[idx] = i + 1
+    
     for i in range(len(FEATURES)):
         feature = FEATURES[i]
         importance = importance_dict[feature]
@@ -67,15 +82,20 @@ def caption_gen():
         val = instance[feature]
         features_.append(feature)
         features_values.append(val)
+        order = order_[i]
         if feature == 'free sulfur dioxide':
             feature = 'free SO2'
         if feature == 'total sulfur dioxide':
             feature = 'total SO2'
         if feature == 'volatile acidity':
-            feature = 'vinegar taint'
+            feature = 'vinegar-taint'
+        if feature == 'fixed acidity':
+            feature = 'fixed-acidity'
         
-        features_with_bound.append({'name': feature, 'range':[min_val,val,max_val],'importance':importance })
-
+        features_with_bound.append({'name': feature, 'range':[min_val,val,max_val],'importance':importance,'importance_order':order })
+        # Sort features by the absolute value of their importance
+    
+            
     # img_path,features_with_values,features_values, features_, org_importance,features_with_bound,gam_path = org_instance_importance(model, X_train, y_train,X, index)
    
     return jsonify({'features_with_bound':features_with_bound,"value_list":features_values,"predict":int(prediction[0])})
