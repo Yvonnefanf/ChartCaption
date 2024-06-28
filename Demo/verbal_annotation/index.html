@@ -22,7 +22,7 @@
 
 <body>
   <main id="app">
-    <div style="display:flex;padding: 0 20px;">
+    <div style="display:flex;padding: 0 20px; height: calc(100vh - 20px);">
       <!-- <el-button style="position:fixed; right:0" type="warning" @click="startGuide">Show Annotation </el-button> -->
 
       <article style="flex: 1">
@@ -75,21 +75,24 @@
                         <div v-if="item.importance>0" class="bar_positive" :style="{width: item.importance + 'px'}">
                         </div>
                       </div>
-                      <el-button style="margin-left:20px; width: 30px; box-shadow: 3px 3px 10px #ccc" size="mini" v-if="(item.importance > threshold || item.importance< -threshold)" plain circle @click="startGuide(item.name)">{{item.importance_order}}</el-button>
+                      <el-button v-if="item.importance>0" :id="'annotation_'+item.importance_order" style="margin-left:20px; width: 30px; box-shadow: 3px 3px 10px #ccc;border: 1px solid #ccc; color:#fff;" size="mini" v-if="(item.importance > threshold || item.importance< -threshold)" plain circle @click="startGuide(item.name)" :style="{background:`rgba(219,45,45,${item.importance/100})`}">{{item.importance_order}}</el-button>
+                      <el-button v-if="item.importance<0" :id="'annotation_'+item.importance_order" style="margin-left:20px; width: 30px; box-shadow: 3px 3px 10px #ccc;border: 1px solid #ccc; color:#fff;" size="mini" v-if="(item.importance > threshold || item.importance< -threshold)" plain circle @click="startGuide(item.name)" :style="{background:`rgba(45,156,219,${-item.importance/100})`}">{{item.importance_order}}</el-button>
                     </div>
                   </div>
-                  <div style="position:absolute; bottom:-20px; left:250px; font-size:14px; color:#2D9CDB"> {{'<7'}} </div>
-                    <div style="position:absolute; bottom:-20px; left:430px;font-size:14px; color:#DB2D2D"> {{'>=7'}}
+                  <div v-if="showXAI" style="position:absolute; bottom:-20px; left:250px; font-size:16px; color:#2D9CDB;font-weight: 600;"> {{'< 7'}} </div>
+                  <div v-if="showXAI" style="position:absolute; bottom:-20px; left:430px;font-size:16px; color:#DB2D2D;font-weight: 600;"> {{'≥ 7'}}
                     </div>
                   </div>
            
 
                 <div
-                  style="text-align: center; border: 1px solid; height:80px; width:120px;padding: 10px; position:relative; margin-top:10%;margin-left:20px;">
-                  <span style="position:absolute;top:30px;left:-30px;"> <i class="el-icon-right"></i></span>
-                  <span style="font-weight: 600; font-size:14px;">AI Prediction</span>
+                  style="text-align: center; height:80px; width:120px;padding: 10px; position:relative; margin-top:10%;margin-left:20px;">
+                  <!-- <span style="position:absolute;top:30px;left:-30px;"> <i class="el-icon-right"></i></span> -->
+                  <span style="font-weight: 600; font-size:14px; margin-left: 13px;">AI Prediction</span>
                   <br />
-                  <span style="font-size: 14px;">Quality {{predict>0?'>=7':'<7'}} </span>
+                  <div style="background-color:#DB2D2D" class="prediction-res" v-if="predict>0">Quality {{'≥ 7'}} </div>
+                  <!-- <div style="font-size: 14px;">Quality {{predict>0?'>=7':'<7'}} </div> -->
+                  <div style="background-color:#2D9CDB" class="prediction-res" v-if="predict==0">Quality {{'< 7'}} </div>
                 </div>
 
                 <div class="block-container retrieval-container" id="OneMore" v-if="showOneMore">
@@ -108,8 +111,8 @@
                       </div>
                     </div>
                   </div>
-                  <div style="position:absolute; bottom:-20px;font-size:14px; color:#2D9CDB"> {{'<7'}} </div>
-                  <div style="position:absolute; bottom:-20px; right:0;font-size:14px; color:#DB2D2D"> {{'>=7'}}</div>
+                  <div style="position:absolute; bottom:-20px;font-size:14px; color:#2D9CDB"> {{'< 7'}} </div>
+                  <div style="position:absolute; bottom:-20px; right:0;font-size:14px; color:#DB2D2D"> {{'≥ 7'}}</div>
             
                 </div>
                 <div v-if="showXAI && showOneMore" class="block-container retrieval-container"
@@ -381,6 +384,12 @@
     font-weight: 600;
   }
 
+  .annotation_highlight{
+    color: deeppink;
+    border: 1px solid deeppink;
+    font-weight: 600;
+  }
+
   .similar {
     color: #ccc;
     font-weight: 100;
@@ -454,7 +463,7 @@
     height: 100%;
     width: 1px;
     position: absolute;
-    background-color: #000;
+    background-color: #ccc;
     left: 240px;
   }
 
@@ -510,6 +519,15 @@
 
   .el-button--primary {
     background-color: #2D9CDB;
+  }
+  .prediction-res {
+    height: 50px;
+    width: 120px;
+    line-height: 50px;
+    padding: 0 20px;
+    font-size: 14px;
+    border-radius: 10px;
+    color:#fff;
   }
 
   .el-switch__label * {}
