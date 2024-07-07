@@ -54,7 +54,7 @@ def caption_gen():
     data = request.get_json()
     index = data.get('index')
     index = int(index)
-    print("index111",index)
+    # print("index111",index)
     instance = X_train.iloc[index]
     prediction = model.predict([instance])
     print("prediction",prediction[0])
